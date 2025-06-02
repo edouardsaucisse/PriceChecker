@@ -12,6 +12,8 @@ class Config:
     REQUEST_TIMEOUT = 30
     REQUEST_DELAY = 1  # Délai entre les requêtes en secondes
     MAX_RETRIES = 3
+    USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+
     
     # Configuration de la planification
     AUTO_UPDATE_ENABLED = True
