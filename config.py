@@ -2,7 +2,7 @@
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
-    DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'PriceCheck.db')
+    DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'pricechecker.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Configuration des connecteurs

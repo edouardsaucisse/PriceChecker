@@ -4,25 +4,44 @@ Gestion SQLite avec fonctions utilitaires
 """
 
 import sqlite3
-from datetime import datetime
-from pathlib import Path
-import sys
-import os
+import logging
+# from datetime import datetime
+# from pathlib import Path
+# import sys
+# import os
+
+from flask import current_app
 
 # Configuration de la base de données
-DATABASE_FILE = "pricechecker.db"
+# DATABASE_FILE = "pricechecker.db"
+
+# Configuration du logging
+logger = logging.getLogger(__name__)
+
 
 def get_db_connection():
     """Ouvrir une connexion à la base de données SQLite"""
-    conn = sqlite3.connect(DATABASE_FILE)
-    conn.row_factory = sqlite3.Row  # Permet l'accès par nom de colonne
-    return conn
+    try:
+        # Utiliser la config Flask si disponible
+        if current_app:
+            db_path = current_app.config.get('DATABASE_PATH', 'pricechecker.db')
+        else:
+            db_path = 'pricechecker.db'
+
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except Exception as e:
+        logger.error(f"Erreur connexion DB: {e}")
+        raise
+
 
 def dict_from_row(row):
     """Convertir un objet Row SQLite en dictionnaire Python"""
     if row is None:
         return None
     return {key: row[key] for key in row.keys()}
+
 
 def init_db():
     """Initialiser la base de données avec les tables nécessaires"""
