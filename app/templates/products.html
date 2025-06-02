@@ -1,13 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-
-</body>
-</html>
 {% extends "base.html" %}
 
 {% block title %}Produits surveillés - PriceChecker{% endblock %}
@@ -34,7 +24,7 @@
                             </p>
                             <div class="mt-auto">
                                 <small class="text-muted d-block mb-2">
-                                    📅 Ajouté le {{ product.created_at.strftime('%d/%m/%Y') if product.created_at else 'Date inconnue' }}
+                                    📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
                                 </small>
                                 <div class="d-flex gap-2">
                                     <a href="{{ url_for('main.product_detail', product_id=product.id) }}" 

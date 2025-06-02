@@ -1,20 +1,13 @@
-"""
-Application Flask pour PriceChecker
-"""
-
 from flask import Flask
-import os
-
 
 def create_app():
-    """Factory pour créer l'application Flask"""
-    app = Flask(__name__)
+    app = Flask(__name__, 
+                static_folder='../static',  # Chemin vers le dossier static
+                static_url_path='/static')  # URL pour accéder aux fichiers statiques
     
-    # Configuration
-    app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
-    app.config['DATABASE_PATH'] = 'pricechecker.db'
+    app.config['SECRET_KEY'] = 'your-secret-key-here'
     
-    # Import des routes
+    # Importation et enregistrement des routes
     from app.routes import main
     app.register_blueprint(main)
     

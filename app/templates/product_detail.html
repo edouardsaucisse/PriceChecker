@@ -11,7 +11,7 @@
                 <h1>{{ product.name }}</h1>
                 <p class="text-muted">{{ product.description or 'Aucune description' }}</p>
                 <small class="text-muted">
-                    📅 Ajouté le {{ product.created_at.strftime('%d/%m/%Y à %H:%M') if product.created_at else 'Date inconnue' }}
+                    📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
                 </small>
             </div>
             <div>
@@ -53,7 +53,7 @@
                                     
                                     <div class="mt-2">
                                         <small class="text-muted">
-                                            Dernière vérification : {{ price.scraped_at.strftime('%d/%m/%Y à %H:%M') if price.scraped_at else 'Jamais' }}
+                                            Dernière vérification : {{ price.scraped_at.split(' ')[0] if price.scraped_at else 'Jamais' }}
                                         </small>
                                     </div>
                                     
