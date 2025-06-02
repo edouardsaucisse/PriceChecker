@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - PriceChecker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <!-- En-tête du produit -->
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1>{{ product.name }}</h1>
+                <p class="text-muted">{{ product.description or 'Aucune description' }}</p>
+                <small class="text-muted">
+                    📅 Ajouté le {{ product.created_at.strftime('%d/%m/%Y à %H:%M') if product.created_at else 'Date inconnue' }}
+                </small>
+            </div>
+            <div>
+                <a href="{{ url_for('main.products') }}" class="btn btn-outline-secondary">
+                    ← Retour à la liste
+                </a>
+            </div>
+        </div>
+
+        <!-- Prix actuels -->
+        <div class="row">
+            <div class="col-md-12">
+                <h3>💰 Prix actuels</h3>
+                
+                {% if prices %}
+                    <div class="row">
+                        {% for price in prices %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h5 class="card-title">{{ price.shop_name }}</h5>
+                                        {% if price.is_available and price.price %}
+                                            <span class="badge bg-success">Disponible</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Indisponible</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if price.price %}
+                                        <h4 class="text-primary">{{ "%.2f"|format(price.price) }} {{ price.currency }}</h4>
+                                    {% else %}
+                                        <h4 class="text-muted">Prix non disponible</h4>
+                                    {% endif %}
+                                    
+                                    {% if price.error_message %}
+                                        <small class="text-danger">{{ price.error_message }}</small>
+                                    {% endif %}
+                                    
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            Dernière vérification : {{ price.scraped_at.strftime('%d/%m/%Y à %H:%M') if price.scraped_at else 'Jamais' }}
+                                        </small>
+                                    </div>
+                                    
+                                    {% if price.url %}
+                                    <div class="mt-2">
+                                        <a href="{{ price.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            🔗 Voir sur {{ price.shop_name }}
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">⚠️ Aucun prix disponible</h6>
+                        <p class="mb-0">
+                            Aucun lien de boutique n'a encore été ajouté pour ce produit. 
+                            Les fonctionnalités de scraping seront disponibles dans les prochaines étapes.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h5 class="card-title">🔧 Actions disponibles</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary" disabled>
+                                ➕ Ajouter un lien boutique
+                            </button>
+                            <button type="button" class="btn btn-outline-info" disabled>
+                                🔔 Configurer une alerte
+                            </button>
+                            <button type="button" class="btn btn-outline-success" disabled>
+                                🔄 Vérifier les prix maintenant
+                            </button>
+                        </div>
+                        <small class="d-block mt-2 text-muted">
+                            Ces fonctionnalités seront implémentées dans les prochaines étapes
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

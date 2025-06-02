@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+{% extends "base.html" %}
+
+{% block title %}Ajouter un produit - PriceChecker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">➕ Ajouter un nouveau produit</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nom du produit *</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="name" 
+                               name="name" 
+                               required
+                               placeholder="Ex: iPhone 15 Pro, Samsung Galaxy S24...">
+                        <div class="form-text">Le nom du produit à surveiller</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (optionnel)</label>
+                        <textarea class="form-control" 
+                                  id="description" 
+                                  name="description" 
+                                  rows="3"
+                                  placeholder="Ajoutez des détails comme la couleur, la capacité, etc."></textarea>
+                        <div class="form-text">Informations supplémentaires pour identifier le produit</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('main.products') }}" class="btn btn-secondary me-md-2">
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            ✅ Créer le produit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="alert alert-info">
+                <h6 class="alert-heading">💡 Étapes suivantes</h6>
+                <p class="mb-0">
+                    Après création du produit, vous pourrez ajouter des liens vers différentes boutiques 
+                    pour surveiller les prix.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+</body>
+</html>

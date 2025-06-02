@@ -1,33 +1,42 @@
-﻿/* Styles personnalisés pour PriceCheck */
+﻿/* Styles personnalisés pour PriceChecker */
 
 body {
     background-color: #f8f9fa;
 }
 
-.price-card {
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: transform 0.2s;
 }
 
-.price-card:hover {
+.card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.price-best {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
+.navbar-brand {
+    font-weight: bold;
 }
 
-.price-error {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
+.alert {
+    border-radius: 8px;
 }
 
-.loading {
-    opacity: 0.6;
-    pointer-events: none;
+.btn {
+    border-radius: 6px;
 }
 
-.btn-refresh {
-    font-size: 0.8rem;
+/* Styles pour les prix */
+.price-good {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.price-high {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.price-unavailable {
+    color: #6c757d;
+    font-style: italic;
 }

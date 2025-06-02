@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+{% extends "base.html" %}
+
+{% block title %}Accueil - PriceChecker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>🎯 Bienvenue sur PriceChecker</h1>
+        <p class="lead">Surveillez les prix de vos produits préférés en temps réel</p>
+        
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">📊 Produits surveillés</h5>
+                        <h2 class="text-primary">{{ products|length }}</h2>
+                        <a href="{{ url_for('main.products') }}" class="btn btn-primary">Voir la liste</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">➕ Ajouter un produit</h5>
+                        <p class="card-text">Commencez à surveiller un nouveau produit</p>
+                        <a href="{{ url_for('main.add_product') }}" class="btn btn-success">Ajouter</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">📈 Alertes prix</h5>
+                        <p class="card-text">Fonctionnalité à venir</p>
+                        <button class="btn btn-secondary" disabled>Bientôt</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if products %}
+        <div class="mt-5">
+            <h3>🏷️ Derniers produits ajoutés</h3>
+            <div class="row">
+                {% for product in products[:3] %}
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text">{{ product.description or 'Aucune description' }}</p>
+                            <small class="text-muted">Ajouté le {{ product.created_at }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
