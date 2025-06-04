@@ -13,7 +13,7 @@ function validateProductName(name) {
         return "Le nom ne peut pas dépasser 100 caractères";
     }
     // Vérifier les caractères dangereux
-    const dangerousChars = ['<', '>', '"', "'", '&'];
+    const dangerousChars = ['<', '>', '"', '&'];
     if (dangerousChars.some(char => name.includes(char))) {
         return "Le nom contient des caractères non autorisés";
     }

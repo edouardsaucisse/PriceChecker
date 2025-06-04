@@ -2,16 +2,25 @@
 Routes Flask pour PriceChecker
 """
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app
 import logging
+import time
+
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app
 from database.models import (
     get_all_products,
     create_product,
-    get_product_by_id,
     add_product_link,
-    get_latest_prices
+    update_product,
+    get_latest_prices,
+    get_product_links,
+    delete_product_link,
+    scrape_all_product_links,
+    get_product_by_id,
+    get_scraping_stats,
+    record_price
 )
-# ✅ Import des validateurs
+
+
 from utils.validators import (
     validate_all_product_data,
     validate_all_link_data,
@@ -62,11 +71,57 @@ def product_detail(product_id):
             return redirect(url_for('main.products'))
 
         prices = get_latest_prices(product_id)
-        return render_template('product_detail.html', product=product, prices=prices)
+        links = get_product_links(product_id)
+
+        return render_template('product_detail.html',
+                             product=product,
+                             prices=prices,
+                             links=links,
+                             get_product_links=get_product_links)
+
     except Exception as e:
         logger.error(f"Erreur chargement produit {product_id}: {e}")
         flash(f'Erreur lors du chargement: {e}', 'error')
         return redirect(url_for('main.products'))
+
+@main.route('/product/<int:product_id>/edit', methods=['GET', 'POST'])
+def edit_product(product_id):
+    """Modifier un produit existant"""
+    
+    if request.method == 'POST':
+        # Traitement du formulaire
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not name:
+            flash('Le nom du produit est obligatoire', 'error')
+            return redirect(url_for('main.edit_product', product_id=product_id))  # ← main. ajouté
+        
+        try:
+            success = update_product(product_id, name, description if description else None)
+            
+            if success:
+                flash('Produit mis à jour avec succès !', 'success')
+                return redirect(url_for('main.product_detail', product_id=product_id))  # ← main. ajouté
+            else:
+                flash('Produit introuvable', 'error')
+                return redirect(url_for('main.index'))  # ← main. ajouté
+                
+        except ValueError as e:
+            flash(str(e), 'error')
+        except Exception as e:
+            flash('Erreur lors de la mise à jour du produit', 'error')
+            print(f"Erreur modification produit {product_id}: {e}")
+        
+        return redirect(url_for('main.edit_product', product_id=product_id))  # ← main. ajouté
+    
+    # Affichage du formulaire (GET)
+    product = get_product_by_id(product_id)
+    if not product:
+        flash('Produit introuvable', 'error')
+        return redirect(url_for('main.index'))  # ← main. ajouté
+    
+    return render_template('edit_product.html', product=product)
 
 @main.route('/add_product', methods=['GET', 'POST'])
 def add_product():
@@ -136,6 +191,285 @@ def add_product_link_route(product_id):
             flash(f'Erreur lors de l\'ajout: {e}', 'error')
 
     return render_template('add_link.html', product=product)
+
+
+@main.route('/product/<int:product_id>/delete_link/<int:link_id>', methods=['POST'])
+def delete_link(product_id, link_id):
+    """Supprimer un lien de boutique"""
+    try:
+        # Vérifier que le produit existe
+        product = get_product_by_id(product_id)
+        if not product:
+            flash('Produit non trouvé', 'error')
+            return redirect(url_for('main.products'))
+
+        # Supprimer le lien
+        success = delete_product_link(link_id)
+
+        if success:
+            flash('Lien supprimé avec succès !', 'success')
+            logger.info(f"Lien {link_id} supprimé du produit {product_id}")
+        else:
+            flash('Lien non trouvé', 'error')
+
+        return redirect(url_for('main.product_detail', product_id=product_id))
+
+    except Exception as e:
+        logger.error(f"Erreur suppression lien {link_id}: {e}")
+        flash('Erreur lors de la suppression', 'error')
+        return redirect(url_for('main.product_detail', product_id=product_id))
+
+# Mise à jour de la route scrape_product_prices
+@main.route('/product/<int:product_id>/scrape', methods=['GET', 'POST'])
+def scrape_product_prices(product_id):
+    """Page de scraping des prix pour un produit"""
+    
+    # Vérifier que le produit existe
+    product = get_product_by_id(product_id)
+    if not product:
+        flash('Produit non trouvé.', 'error')
+        return redirect(url_for('main.products'))
+    
+    if request.method == 'POST':
+        try:
+            # Lancer le scraping
+            flash('🔄 Scraping en cours...', 'info')
+            results = scrape_all_product_links(product_id)
+            
+            # Analyser les résultats
+            successful = [r for r in results if r.get('success', False)]
+            failed = [r for r in results if not r.get('success', False)]
+            
+            if successful:
+                flash(f'✅ Scraping terminé ! {len(successful)} prix récupérés avec succès.', 'success')
+            
+            if failed:
+                failed_shops = [r['shop_name'] for r in failed]
+                flash(f'⚠️ Échecs pour: {", ".join(failed_shops)}', 'warning')
+            
+            if not results:
+                flash('ℹ️ Aucun lien à scraper pour ce produit.', 'info')
+            
+            # Rediriger vers la page produit pour voir les résultats
+            return redirect(url_for('main.product_detail', product_id=product_id))
+            
+        except Exception as e:
+            logger.error(f"Erreur scraping produit {product_id}: {e}")
+            flash(f'❌ Erreur lors du scraping: {str(e)}', 'error')
+    
+    # GET : afficher la page de scraping
+    links = get_product_links(product_id)
+    stats = get_scraping_stats(product_id)
+    latest_prices = get_latest_prices(product_id)  # ← Utiliser votre fonction
+    
+    return render_template('scrape_prices.html', 
+                         product=product, 
+                         links=links,
+                         stats=stats,
+                         latest_prices=latest_prices)  # ← Nouveau nom
+
+@main.route('/product/<int:product_id>/scrape/ajax', methods=['POST'])
+def scrape_product_ajax(product_id):
+    """Scraping AJAX pour un produit (non-bloquant)"""
+
+    try:
+        # Lancer le scraping en arrière-plan
+        results = scrape_all_product_links(product_id)
+
+        # Préparer la réponse JSON
+        successful = [r for r in results if r.get('success', False)]
+        failed = [r for r in results if not r.get('success', False)]
+
+        return jsonify({
+            'success': True,
+            'total': len(results),
+            'successful': len(successful),
+            'failed': len(failed),
+            'results': results,
+            'message': f'Scraping terminé: {len(successful)} succès, {len(failed)} échecs'
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur scraping AJAX produit {product_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': f'Erreur: {str(e)}'
+        }), 500
+
+@main.route('/link/<int:link_id>/scrape', methods=['POST'])
+def scrape_single_link(link_id):
+    """Scraper un seul lien spécifique"""
+
+    try:
+        # Récupérer les infos du lien
+        conn = get_db_connection()
+        link = conn.execute('''
+                            SELECT pl.*, p.name as product_name
+                            FROM product_links pl
+                                     JOIN products p ON pl.product_id = p.id
+                            WHERE pl.id = ?
+                            ''', (link_id,)).fetchone()
+        conn.close()
+
+        if not link:
+            flash('Lien non trouvé.', 'error')
+            return redirect(url_for('main.products'))
+
+        # Scraper ce lien spécifique
+        from scraping.price_scraper import create_price_scraper
+        scraper = create_price_scraper()
+
+        price_data = scraper.scrape_price(
+            url=link['url'],
+            css_selector=link['css_selector'],
+            shop_name=link['shop_name']
+        )
+
+        # Sauvegarder le résultat
+        price_id = record_price(
+            product_link_id=link['id'],
+            price=price_data['price'],
+            currency=price_data['currency'],
+            is_available=price_data['is_available'],
+            error_message=price_data['error_message']
+        )
+
+        if price_data['is_available'] and price_data['price']:
+            flash(f'✅ Prix mis à jour pour {link["shop_name"]}: {price_data["price"]} {price_data["currency"]}',
+                  'success')
+        else:
+            flash(f'⚠️ Échec scraping pour {link["shop_name"]}: {price_data.get("error_message", "Prix non trouvé")}',
+                  'warning')
+
+        return redirect(url_for('main.product_detail', product_id=link['product_id']))
+
+    except Exception as e:
+        logger.error(f"Erreur scraping lien {link_id}: {e}")
+        flash(f'❌ Erreur: {str(e)}', 'error')
+        return redirect(url_for('main.products'))
+
+@main.route('/product/<int:product_id>/quick-scrape', methods=['POST'])
+def quick_scrape_product(product_id):
+    """Scraping rapide depuis la page produit"""
+
+    try:
+        # Vérifier que le produit existe
+        product = get_product_by_id(product_id)
+        if not product:
+            flash('Produit non trouvé.', 'error')
+            return redirect(url_for('main.products'))
+
+        # Lancer le scraping
+        results = scrape_all_product_links(product_id)
+
+        # Analyser les résultats
+        successful = [r for r in results if r.get('success', False)]
+        failed = [r for r in results if not r.get('success', False)]
+
+        if successful:
+            flash(f'✅ Prix mis à jour ! {len(successful)} boutique(s) scrapée(s) avec succès.', 'success')
+
+        if failed:
+            failed_shops = [r['shop_name'] for r in failed]
+            flash(f'⚠️ Échecs pour: {", ".join(failed_shops)}', 'warning')
+
+        if not results:
+            flash('ℹ️ Aucun lien à scraper pour ce produit.', 'info')
+
+        return redirect(url_for('main.product_detail', product_id=product_id))
+
+    except Exception as e:
+        logger.error(f"Erreur scraping rapide produit {product_id}: {e}")
+        flash(f'❌ Erreur lors du scraping: {str(e)}', 'error')
+        return redirect(url_for('main.product_detail', product_id=product_id))
+
+@main.route('/api/scraping/status/<int:product_id>')
+def scraping_status(product_id):
+    """API pour récupérer le statut du scraping"""
+    
+    try:
+        stats = get_scraping_stats(product_id)
+        latest_prices = get_latest_prices(product_id)  # ← Utiliser votre fonction
+        
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'latest_prices': [dict(price) for price in latest_prices]  # ← Nouveau nom
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@main.route('/scrape-all', methods=['POST'])
+def scrape_all_products():
+    """Scraper tous les prix de tous les produits"""
+
+    try:
+        # Récupérer tous les produits qui ont des liens
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        products_with_links = cursor.execute('''
+                                             SELECT DISTINCT p.id, p.name
+                                             FROM products p
+                                                      JOIN product_links pl ON p.id = pl.product_id
+                                             ORDER BY p.name
+                                             ''').fetchall()
+
+        conn.close()
+
+        if not products_with_links:
+            flash('ℹ️ Aucun produit avec des liens à scraper.', 'info')
+            return redirect(url_for('main.products'))
+
+        # Statistiques
+        total_products = len(products_with_links)
+        total_successful = 0
+        total_failed = 0
+        products_processed = []
+
+        # Scraper chaque produit
+        for product in products_with_links:
+            try:
+                results = scrape_all_product_links(product['id'])
+
+                successful = [r for r in results if r.get('success', False)]
+                failed = [r for r in results if not r.get('success', False)]
+
+                total_successful += len(successful)
+                total_failed += len(failed)
+
+                products_processed.append({
+                    'name': product['name'],
+                    'successful': len(successful),
+                    'failed': len(failed)
+                })
+
+            except Exception as e:
+                logger.error(f"Erreur scraping produit {product['id']}: {e}")
+                total_failed += 1
+
+        # Messages de résultats
+        if total_successful > 0:
+            flash(f'✅ Scraping global terminé ! {total_successful} prix récupérés sur {total_products} produit(s).',
+                  'success')
+
+        if total_failed > 0:
+            flash(f'⚠️ {total_failed} échec(s) de scraping détectés.', 'warning')
+
+        # Log détaillé optionnel
+        logger.info(f"Scraping global: {total_products} produits, {total_successful} succès, {total_failed} échecs")
+
+        return redirect(url_for('main.products'))
+
+    except Exception as e:
+        logger.error(f"Erreur scraping global: {e}")
+        flash(f'❌ Erreur lors du scraping global: {str(e)}', 'error')
+        return redirect(url_for('main.products'))
 
 @main.route('/api/products', methods=['GET', 'POST'])
 def api_products():
@@ -213,6 +547,30 @@ def api_product_detail(product_id):
         })
     except Exception as e:
         logger.error(f"Erreur API produit {product_id}: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@main.route('/api/product/<int:product_id>/links')
+def api_product_links(product_id):
+    """API JSON pour récupérer les liens d'un produit"""
+    try:
+        product = get_product_by_id(product_id)
+        if not product:
+            return jsonify({
+                'status': 'error',
+                'message': 'Produit non trouvé'
+            }), 404
+
+        links = get_product_links(product_id)
+        return jsonify({
+            'status': 'success',
+            'count': len(links),
+            'links': links
+        })
+    except Exception as e:
+        logger.error(f"Erreur API liens produit {product_id}: {e}")
         return jsonify({
             'status': 'error',
             'message': str(e)

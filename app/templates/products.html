@@ -3,6 +3,23 @@
 {% block title %}Produits surveillés - PriceChecker{% endblock %}
 
 {% block content %}
+<!-- Dans l'en-tête de la page, après le titre -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📦 Mes Produits</h1>
+    <div>
+        <!-- Bouton de scraping global -->
+        <form method="POST" action="{{ url_for('main.scrape_all_products') }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-success me-2" 
+                    onclick="return confirm('Mettre à jour les prix de tous les produits ? Cela peut prendre du temps.') && (this.disabled=true, this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Scraping...', true);">
+                <i class="bi bi-arrow-clockwise"></i> Mettre à jour tous les prix
+            </button>
+        </form>
+        
+        <a href="{{ url_for('main.add_product') }}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> Nouveau produit
+        </a>
+    </div>
+</div>
 <div class="row">
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
