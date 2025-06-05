@@ -31,15 +31,15 @@
             </button>
         </form>
         {% endif %}
-        
         <a href="{{ url_for('main.edit_product', product_id=product.id) }}" class="btn btn-outline-secondary me-2">
             <i class="bi bi-pencil"></i> Modifier
         </a>
-        
-        <!-- Et dans la section boutons, assurez-vous que le lien est correct -->
-<a href="{{ url_for('main.products') }}" class="btn btn-secondary">
-    <i class="bi bi-arrow-left"></i> Liste des produits
-</a>
+        <a href="{{ url_for('main.products') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Liste des produits
+        </a>
+        <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
+            <i class="fas fa-trash"></i> Supprimer
+        </button>
     </div>
 </div>
 
@@ -209,4 +209,52 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="deleteProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>⚠️ Attention !</strong> Cette action est irréversible.
+                </p>
+                <p>
+                    Voulez-vous vraiment supprimer le produit <strong>{{ product.name }}</strong> ?
+                </p>
+                <p class="text-muted small">
+                    Cela supprimera également :
+                </p>
+                <ul class="text-muted small">
+                    <li>Tous les liens vers les boutiques ({{ product_links|length }} liens)</li>
+                    <li>Tout l'historique des prix collectés</li>
+                    <li>Toutes les statistiques associées</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <form method="POST" action="{{ url_for('main.delete_product_route', product_id=product.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDeleteProduct(productId, productName) {
+    // Afficher le modal de confirmation
+    const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+    modal.show();
+}
+</script>
+
 {% endblock %}

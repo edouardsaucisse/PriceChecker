@@ -44,13 +44,22 @@
                                     📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
                                 </small>
                                 <div class="d-flex gap-2">
-                                    <a href="{{ url_for('main.product_detail', product_id=product.id) }}" 
-                                       class="btn btn-primary btn-sm">
-                                        👁️ Voir détails
+                                   <a href="{{ url_for('main.product_detail', product_id=product.id) }}"
+                                       class="btn btn-primary btn-sm me-2">
+                                        <i class="fas fa-eye"></i> Voir détails
                                     </a>
-                                    <button class="btn btn-outline-secondary btn-sm" 
-                                            onclick="showPriceHistory({{ product.id }})">
-                                        📊 Prix
+                                    <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
+                                       class="btn btn-outline-secondary btn-sm me-2">
+                                        <i class="fas fa-edit"></i> Modifier
+                                    </a>
+                                    <a href="{{ url_for('main.price_history', product_id=product.id) }}"
+                                        class="btn btn-info">
+                                        📊 Voir l'historique des prix
+                                    </a>
+                                    <button type="button"
+                                            class="btn btn-outline-danger btn-sm"
+                                            onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
+                                        <i class="fas fa-trash"></i> Supprimer
                                     </button>
                                 </div>
                             </div>
@@ -113,20 +122,40 @@
     </div>
 </div>
 
-<!-- Modal pour l'historique des prix (fonctionnalité future) -->
-<div class="modal fade" id="priceHistoryModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="deleteProductModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">📊 Historique des prix</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Fonctionnalité à venir dans les prochaines étapes...</p>
+                <p class="mb-3">
+                    <strong>⚠️ Attention !</strong> Cette action est irréversible.
+                </p>
+                <p>
+                    Voulez-vous vraiment supprimer le produit <strong id="productNameToDelete"></strong> ?
+                </p>
+                <p class="text-muted small">
+                    Cela supprimera également tous les liens et l'historique des prix associés.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <form id="deleteProductForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer définitivement
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
 
 <script>
 function showPriceHistory(productId) {
@@ -135,4 +164,16 @@ function showPriceHistory(productId) {
     modal.show();
 }
 </script>
+<script>
+function confirmDeleteProduct(productId, productName) {
+    // Mettre à jour le modal avec les infos du produit
+    document.getElementById('productNameToDelete').textContent = productName;
+    document.getElementById('deleteProductForm').action = `/product/${productId}/delete`;
+
+    // Afficher le modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+    modal.show();
+}
+</script>
+
 {% endblock %}

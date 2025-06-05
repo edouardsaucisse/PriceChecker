@@ -3,10 +3,13 @@ Routes Flask pour PriceChecker
 """
 
 import logging
-import time
+import csv
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app
+from io import StringIO
+from datetime import datetime
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, make_response
 from database.models import (
+    get_db_connection,
     get_all_products,
     create_product,
     add_product_link,
@@ -17,16 +20,19 @@ from database.models import (
     scrape_all_product_links,
     get_product_by_id,
     get_scraping_stats,
-    record_price
+    record_price,
+    get_price_statistics,
+    get_price_history,
+    get_price_history_table,
+    get_price_history_for_chart,
+    delete_product
 )
-
 
 from utils.validators import (
     validate_all_product_data,
     validate_all_link_data,
     validate_product_name,
     validate_shop_url,
-    validate_shop_name
 )
 
 # Configuration du logging
@@ -87,40 +93,40 @@ def product_detail(product_id):
 @main.route('/product/<int:product_id>/edit', methods=['GET', 'POST'])
 def edit_product(product_id):
     """Modifier un produit existant"""
-    
+
     if request.method == 'POST':
         # Traitement du formulaire
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
-        
+
         if not name:
             flash('Le nom du produit est obligatoire', 'error')
             return redirect(url_for('main.edit_product', product_id=product_id))  # ← main. ajouté
-        
+
         try:
             success = update_product(product_id, name, description if description else None)
-            
+
             if success:
                 flash('Produit mis à jour avec succès !', 'success')
                 return redirect(url_for('main.product_detail', product_id=product_id))  # ← main. ajouté
             else:
                 flash('Produit introuvable', 'error')
                 return redirect(url_for('main.index'))  # ← main. ajouté
-                
+
         except ValueError as e:
             flash(str(e), 'error')
         except Exception as e:
             flash('Erreur lors de la mise à jour du produit', 'error')
             print(f"Erreur modification produit {product_id}: {e}")
-        
+
         return redirect(url_for('main.edit_product', product_id=product_id))  # ← main. ajouté
-    
+
     # Affichage du formulaire (GET)
     product = get_product_by_id(product_id)
     if not product:
         flash('Produit introuvable', 'error')
         return redirect(url_for('main.index'))  # ← main. ajouté
-    
+
     return render_template('edit_product.html', product=product)
 
 @main.route('/add_product', methods=['GET', 'POST'])
@@ -192,6 +198,33 @@ def add_product_link_route(product_id):
 
     return render_template('add_link.html', product=product)
 
+@main.route('/product/<int:product_id>/delete', methods=['POST'])
+def delete_product_route(product_id):
+    """Supprimer un produit et toutes ses données associées"""
+    try:
+        # Récupérer le nom du produit avant suppression
+        product = get_product_by_id(product_id)
+        if not product:
+            flash('Produit introuvable.', 'error')
+            return redirect(url_for('main.products'))
+
+        product_name = product['name']
+
+        # Supprimer le produit
+        success = delete_product(product_id)
+
+        if success:
+            flash(f'Produit "{product_name}" supprimé avec succès.', 'success')
+            logger.info(f"Produit supprimé via interface: {product_name} (ID: {product_id})")
+        else:
+            flash('Erreur: produit introuvable.', 'error')
+
+        return redirect(url_for('main.products'))
+
+    except Exception as e:
+        logger.error(f"Erreur suppression produit {product_id}: {str(e)}")
+        flash('Erreur lors de la suppression du produit.', 'error')
+        return redirect(url_for('main.products'))
 
 @main.route('/product/<int:product_id>/delete_link/<int:link_id>', methods=['POST'])
 def delete_link(product_id, link_id):
@@ -223,47 +256,47 @@ def delete_link(product_id, link_id):
 @main.route('/product/<int:product_id>/scrape', methods=['GET', 'POST'])
 def scrape_product_prices(product_id):
     """Page de scraping des prix pour un produit"""
-    
+
     # Vérifier que le produit existe
     product = get_product_by_id(product_id)
     if not product:
         flash('Produit non trouvé.', 'error')
         return redirect(url_for('main.products'))
-    
+
     if request.method == 'POST':
         try:
             # Lancer le scraping
             flash('🔄 Scraping en cours...', 'info')
             results = scrape_all_product_links(product_id)
-            
+
             # Analyser les résultats
             successful = [r for r in results if r.get('success', False)]
             failed = [r for r in results if not r.get('success', False)]
-            
+
             if successful:
                 flash(f'✅ Scraping terminé ! {len(successful)} prix récupérés avec succès.', 'success')
-            
+
             if failed:
                 failed_shops = [r['shop_name'] for r in failed]
                 flash(f'⚠️ Échecs pour: {", ".join(failed_shops)}', 'warning')
-            
+
             if not results:
                 flash('ℹ️ Aucun lien à scraper pour ce produit.', 'info')
-            
+
             # Rediriger vers la page produit pour voir les résultats
             return redirect(url_for('main.product_detail', product_id=product_id))
-            
+
         except Exception as e:
             logger.error(f"Erreur scraping produit {product_id}: {e}")
             flash(f'❌ Erreur lors du scraping: {str(e)}', 'error')
-    
+
     # GET : afficher la page de scraping
     links = get_product_links(product_id)
     stats = get_scraping_stats(product_id)
     latest_prices = get_latest_prices(product_id)  # ← Utiliser votre fonction
-    
-    return render_template('scrape_prices.html', 
-                         product=product, 
+
+    return render_template('scrape_prices.html',
+                         product=product,
                          links=links,
                          stats=stats,
                          latest_prices=latest_prices)  # ← Nouveau nom
@@ -387,17 +420,17 @@ def quick_scrape_product(product_id):
 @main.route('/api/scraping/status/<int:product_id>')
 def scraping_status(product_id):
     """API pour récupérer le statut du scraping"""
-    
+
     try:
         stats = get_scraping_stats(product_id)
         latest_prices = get_latest_prices(product_id)  # ← Utiliser votre fonction
-        
+
         return jsonify({
             'success': True,
             'stats': stats,
             'latest_prices': [dict(price) for price in latest_prices]  # ← Nouveau nom
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -613,3 +646,186 @@ def api_validate_url():
             'valid': False,
             'message': 'Erreur de validation'
         }), 500
+
+@main.route('/product/<int:product_id>/history')
+def price_history(product_id):
+    """Page d'historique des prix"""
+    try:
+        # Récupérer le produit
+        product = get_product_by_id(product_id)
+        if not product:
+            flash('Produit introuvable', 'error')
+            return redirect(url_for('main.products'))
+
+        # Paramètres de filtre
+        days = request.args.get('days', 30, type=int)
+        page = request.args.get('page', 1, type=int)
+        shop_filter = request.args.get('shop', None)
+
+        # Statistiques
+        stats = get_price_statistics(product_id, days)
+
+        # Tableau d'historique paginé
+        history_data = get_price_history_table(
+            product_id,
+            page=page,
+            shop_filter=shop_filter
+        )
+
+        # Liste des boutiques pour le filtre
+        links = get_product_links(product_id)
+        shops = [link['shop_name'] for link in links]
+
+        return render_template('price_history.html',
+                             product=product,
+                             stats=stats,
+                             history_data=history_data,
+                             shops=shops,
+                             current_days=days,
+                             current_shop=shop_filter,
+                             current_page=page)
+
+    except Exception as e:
+        logger.error(f"Erreur page historique produit {product_id}: {e}")
+        flash('Erreur lors du chargement de l\'historique', 'error')
+        return redirect(url_for('main.product_detail', product_id=product_id))
+
+@main.route('/api/product/<int:product_id>/price-chart')
+def api_price_chart(product_id):
+    """API JSON pour données du graphique"""
+    try:
+        days = request.args.get('days', 30, type=int)
+
+        # Valider les jours
+        if days not in [7, 30, 90, 365]:
+            days = 30
+
+        chart_data = get_price_history_for_chart(product_id, days)
+
+        return jsonify({
+            'success': True,
+            'data': chart_data
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur API graphique produit {product_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@main.route('/api/product/<int:product_id>/price-stats')
+def api_price_stats(product_id):
+    """API pour statistiques dynamiques"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        stats = get_price_statistics(product_id, days)
+
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur API stats produit {product_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@main.route('/product/<int:product_id>/history/export')
+def export_price_history(product_id):
+    """Export de l'historique des prix en CSV"""
+    try:
+        # ✅ Vérifier que le produit existe avec votre fonction
+        product = get_product_by_id(product_id)
+        if not product:
+            flash('Produit introuvable.', 'error')
+            return redirect(url_for('main.products'))
+
+        # ✅ Récupérer l'historique avec votre fonction
+        price_history = get_price_history(product_id, limit=1000)  # Plus de données pour export
+
+        if not price_history:
+            flash('Aucune donnée à exporter pour ce produit.', 'warning')
+            return redirect(url_for('main.price_history', product_id=product_id))
+
+        # ✅ Créer le CSV en mémoire
+        output = StringIO()
+        writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+
+        # En-têtes CSV
+        writer.writerow([
+            'Date et heure',
+            'Boutique',
+            'Prix',
+            'Devise',
+            'Disponible',
+            'URL',
+            'Message d\'erreur'
+        ])
+
+        # ✅ Écrire les données (adaptées à vos dictionnaires)
+        for record in price_history:
+            writer.writerow([
+                record.get('scraped_at', '').replace('T', ' ')[:19] if record.get('scraped_at') else '',
+                record.get('shop_name', ''),
+                f"{record['price']:.2f}" if record.get('price') is not None else '',
+                record.get('currency', 'EUR'),
+                'Oui' if record.get('is_available') else 'Non',
+                record.get('url', ''),
+                record.get('error_message', '')
+            ])
+
+        # ✅ Préparer le fichier pour téléchargement
+        output.seek(0)
+
+        # Nom de fichier sécurisé
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        product_name = product.get('name', 'produit').replace(' ', '_')
+        # Nettoyer le nom pour éviter les caractères problématiques
+        safe_name = "".join(c for c in product_name if c.isalnum() or c in ('_', '-')).rstrip()
+        filename = f"historique_prix_{safe_name}_{timestamp}.csv"
+
+        # ✅ Créer la réponse HTTP avec headers corrects
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+
+        logger.info(f"Export CSV généré pour produit {product_id}: {len(price_history)} enregistrements")
+        return response
+
+    except Exception as e:
+        logger.error(f"Erreur export CSV produit {product_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()  # Debug complet
+        flash('Erreur lors de l\'export CSV.', 'error')
+        return redirect(url_for('main.price_history', product_id=product_id))
+
+@main.route('/product/<int:product_id>/history/chart-data')
+def price_history_chart_data(product_id):
+    """API pour les données du graphique"""
+    try:
+
+        days = request.args.get('days', 30, type=int)
+        shop_filter = request.args.get('shop', None)
+
+        chart_data = get_price_history_for_chart(product_id, days)
+
+        # Filtrer par boutique si nécessaire
+        if shop_filter and shop_filter != 'all':
+            filtered_datasets = []
+            for dataset in chart_data.get('datasets', []):
+                if dataset.get('label') == shop_filter:
+                    filtered_datasets.append(dataset)
+            chart_data['datasets'] = filtered_datasets
+
+        return jsonify(chart_data)
+
+    except Exception as e:
+        logger.error(f"Erreur données graphique produit {product_id}: {e}")
+        return jsonify({'error': str(e)}), 500
