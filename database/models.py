@@ -7,19 +7,10 @@ import sqlite3
 import logging
 import time
 import hashlib
-# from datetime import datetime
-# from pathlib import Path
-# import sys
-# import os
 
 from flask import current_app
 
-# Configuration de la base de données
-# DATABASE_FILE = "pricechecker.db"
-
-# Configuration du logging
 logger = logging.getLogger(__name__)
-
 
 def get_db_connection():
     """Ouvrir une connexion à la base de données SQLite"""
@@ -32,6 +23,11 @@ def get_db_connection():
 
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
+
+        if hasattr(current_app.config, 'SQLITE_PRAGMAS'):
+            for pragma, value in current_app.config.SQLITE_PRAGMAS.items():
+                conn.execute(f"PRAGMA {pragma} = {value}")
+
         return conn
     except Exception as e:
         logger.error(f"Erreur connexion DB: {e}")
@@ -47,18 +43,18 @@ def init_db():
     """Initialiser la base de données avec les tables nécessaires"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # Table des produits
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             description TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     ''')
-    
+
     # Table des liens vers les boutiques
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS product_links (
@@ -67,11 +63,12 @@ def init_db():
             shop_name TEXT NOT NULL,
             url TEXT NOT NULL,
             css_selector TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
-        )
+        );
     ''')
-    
+
     # Table des prix collectés
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS price_history (
@@ -79,60 +76,15 @@ def init_db():
             product_link_id INTEGER NOT NULL,
             price REAL,
             currency TEXT DEFAULT 'EUR',
-            is_available BOOLEAN DEFAULT TRUE,
+            is_available BOOLEAN DEFAULT 1,
+            scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             error_message TEXT,
-            scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (product_link_id) REFERENCES product_links (id) ON DELETE CASCADE
         )
     ''')
-    
+
+# Index pour accélérer les requêtes sur les prix
     conn.commit()
-    
-    # Insérer des données de test si aucun produit n'existe
-    existing_products = cursor.execute('SELECT COUNT(*) FROM products').fetchone()[0]
-    if existing_products == 0:
-        print("🌱 Création des données de test...")
-        
-        # Produit de test 1
-        cursor.execute(
-            'INSERT INTO products (name, description) VALUES (?, ?)',
-            ('iPhone 15 Pro', 'Smartphone Apple dernière génération, 256GB')
-        )
-        product_id = cursor.lastrowid
-        
-        # Liens de test
-        cursor.execute(
-            'INSERT INTO product_links (product_id, shop_name, url) VALUES (?, ?, ?)',
-            (product_id, 'Apple Store', 'https://www.apple.com/fr/iphone-15-pro/')
-        )
-        link_id = cursor.lastrowid
-        
-        cursor.execute(
-            'INSERT INTO product_links (product_id, shop_name, url) VALUES (?, ?, ?)',
-            (product_id, 'Amazon', 'https://www.amazon.fr/dp/B0CHX1W1XY')
-        )
-        link_id_2 = cursor.lastrowid
-        
-        # Prix de test
-        cursor.execute(
-            'INSERT INTO price_history (product_link_id, price, currency, is_available) VALUES (?, ?, ?, ?)',
-            (link_id, 1229.00, 'EUR', True)
-        )
-        
-        cursor.execute(
-            'INSERT INTO price_history (product_link_id, price, currency, is_available) VALUES (?, ?, ?, ?)',
-            (link_id_2, 1199.99, 'EUR', True)
-        )
-        
-        # Produit de test 2
-        cursor.execute(
-            'INSERT INTO products (name, description) VALUES (?, ?)',
-            ('Samsung Galaxy S24', 'Smartphone Samsung haut de gamme')
-        )
-        
-        conn.commit()
-        print("✅ Données de test créées")
-    
     conn.close()
     print("✅ Base de données initialisée")
 
@@ -357,15 +309,15 @@ def get_all_products():
     """Récupérer tous les produits avec conversion en dictionnaire"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     rows = cursor.execute('''
         SELECT id, name, description, created_at, updated_at 
         FROM products 
         ORDER BY created_at DESC
     ''').fetchall()
-    
+
     conn.close()
-    
+
     # Convertir en liste de dictionnaires
     products = []
     for row in rows:
@@ -375,21 +327,21 @@ def get_all_products():
             # Les dates SQLite sont des chaînes, on les garde comme ça pour les templates
             pass
         products.append(product_dict)
-    
+
     return products
 
 def get_product_by_id(product_id):
     """Récupérer un produit par son ID"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     row = cursor.execute(
         'SELECT id, name, description, created_at, updated_at FROM products WHERE id = ?',
         (product_id,)
     ).fetchone()
-    
+
     conn.close()
-    
+
     return dict_from_row(row) if row else None
 
 def record_price(product_link_id, price, currency='EUR', is_available=True, error_message=None):

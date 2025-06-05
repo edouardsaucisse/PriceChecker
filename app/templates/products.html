@@ -3,121 +3,117 @@
 {% block title %}Produits surveillés - PriceChecker{% endblock %}
 
 {% block content %}
-<!-- Dans l'en-tête de la page, après le titre -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>📦 Mes Produits</h1>
-    <div>
-        <!-- Bouton de scraping global -->
-        <form method="POST" action="{{ url_for('main.scrape_all_products') }}" class="d-inline">
-            <button type="submit" class="btn btn-outline-success me-2" 
-                    onclick="return confirm('Mettre à jour les prix de tous les produits ? Cela peut prendre du temps.') && (this.disabled=true, this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Scraping...', true);">
-                <i class="bi bi-arrow-clockwise"></i> Mettre à jour tous les prix
-            </button>
-        </form>
-        
-        <a href="{{ url_for('main.add_product') }}" class="btn btn-primary">
-            <i class="bi bi-plus"></i> Nouveau produit
-        </a>
-    </div>
-</div>
 <div class="row">
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>📦 Produits surveillés</h1>
-            <a href="{{ url_for('main.add_product') }}" class="btn btn-success">
-                ➕ Ajouter un produit
-            </a>
+            <div class="d-flex gap-2">
+                <form method="POST" action="{{ url_for('main.scrape_all_products') }}" class="d-inline">
+                    <button type="submit" class="btn btn-outline-success"
+                            onclick="return confirm('Mettre à jour les prix de tous les produits ? Cela peut prendre du temps.') && (this.disabled=true, this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Scraping...', true);">
+                        <i class="bi bi-arrow-clockwise"></i> Mettre à jour tous les prix
+                    </button>
+                </form>
+
+                <a href="{{ url_for('main.add_product') }}" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> Ajouter un produit
+                </a>
+            </div>
         </div>
 
         {% if products %}
-            <div class="row">
-                {% for product in products %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">{{ product.name }}</h5>
-                            <p class="card-text flex-grow-1">
-                                {{ product.description or 'Aucune description disponible' }}
-                            </p>
-                            <div class="mt-auto">
-                                <small class="text-muted d-block mb-2">
-                                    📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
-                                </small>
-                                <div class="d-flex gap-2">
-                                   <a href="{{ url_for('main.product_detail', product_id=product.id) }}"
-                                       class="btn btn-primary btn-sm me-2">
-                                        <i class="fas fa-eye"></i> Voir détails
-                                    </a>
-                                    <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
-                                       class="btn btn-outline-secondary btn-sm me-2">
-                                        <i class="fas fa-edit"></i> Modifier
-                                    </a>
-                                    <a href="{{ url_for('main.price_history', product_id=product.id) }}"
-                                        class="btn btn-info">
-                                        📊 Voir l'historique des prix
-                                    </a>
-                                    <button type="button"
-                                            class="btn btn-outline-danger btn-sm"
-                                            onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
-                                        <i class="fas fa-trash"></i> Supprimer
-                                    </button>
-                                </div>
+        <div class="row">
+            {% for product in products %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 clickable-product-card" data-href="{{ url_for('main.product_detail', product_id=product.id) }}">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text flex-grow-1">
+                            {{ product.description or 'Aucune description disponible' }}
+                        </p>
+                        <div class="mt-auto">
+                            <small class="text-muted d-block mb-2">
+                                📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
+                            </small>
+                            <div class="d-flex gap-2 justify-content-center action-buttons">
+                                <a href="{{ url_for('main.product_detail', product_id=product.id) }}"
+                                   class="btn btn-action-view btn-sm"
+                                   title="Voir les détails">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
+                                   class="btn btn-action-edit btn-sm"
+                                   title="Modifier le produit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('main.price_history', product_id=product.id) }}"
+                                   class="btn btn-action-chart btn-sm"
+                                   title="Historique des prix">
+                                    <i class="fas fa-chart-line"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-action-delete btn-sm"
+                                        title="Supprimer le produit"
+                                        onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
+        </div>
 
-            <!-- Statistiques -->
-            <div class="mt-5">
-                <div class="card bg-light">
-                    <div class="card-body">
-                        <h5 class="card-title">📈 Statistiques</h5>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <h3 class="text-primary">{{ products|length }}</h3>
-                                    <small class="text-muted">Produits surveillés</small>
-                                </div>
+        <!-- Statistiques -->
+        <div class="mt-5">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">📈 Statistiques</h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h3 class="text-primary">{{ products|length }}</h3>
+                                <small class="text-muted">Produits surveillés</small>
                             </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <h3 class="text-success">--</h3>
-                                    <small class="text-muted">Prix en baisse</small>
-                                </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h3 class="text-success">--</h3>
+                                <small class="text-muted">Prix en baisse</small>
                             </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <h3 class="text-warning">--</h3>
-                                    <small class="text-muted">Alertes actives</small>
-                                </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h3 class="text-warning">--</h3>
+                                <small class="text-muted">Alertes actives</small>
                             </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <h3 class="text-info">--</h3>
-                                    <small class="text-muted">Dernière vérification</small>
-                                </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h3 class="text-info">--</h3>
+                                <small class="text-muted">Dernière vérification</small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
         {% else %}
-            <!-- État vide -->
-            <div class="text-center py-5">
-                <div class="mb-4">
-                    <i class="fas fa-box-open fa-5x text-muted"></i>
-                </div>
-                <h3 class="text-muted">Aucun produit surveillé</h3>
-                <p class="text-muted mb-4">
-                    Commencez par ajouter votre premier produit à surveiller
-                </p>
-                <a href="{{ url_for('main.add_product') }}" class="btn btn-primary btn-lg">
-                    🎯 Ajouter mon premier produit
-                </a>
+        <!-- État vide -->
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-box-open fa-5x text-muted"></i>
             </div>
+            <h3 class="text-muted">Aucun produit surveillé</h3>
+            <p class="text-muted mb-4">
+                Commencez par ajouter votre premier produit à surveiller
+            </p>
+            <a href="{{ url_for('main.add_product') }}" class="btn btn-primary btn-lg">
+                🎯 Ajouter mon premier produit
+            </a>
+        </div>
         {% endif %}
     </div>
 </div>
@@ -156,7 +152,26 @@
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Rendre les cartes produits cliquables
+    document.querySelectorAll('.clickable-product-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Vérifier si on a cliqué sur un bouton ou un élément interactif
+            if (e.target.closest('.action-buttons') ||
+                e.target.tagName === 'A' ||
+                e.target.tagName === 'BUTTON' ||
+                e.target.closest('button') ||
+                e.target.closest('a')) {
+                return; // Ne pas rediriger si on a cliqué sur un bouton
+            }
 
+            // Rediriger vers la page de détail
+            window.location.href = this.dataset.href;
+        });
+    });
+});
+</script>
 <script>
 function showPriceHistory(productId) {
     // Fonctionnalité à implémenter plus tard

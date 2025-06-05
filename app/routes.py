@@ -7,7 +7,8 @@ import csv
 
 from io import StringIO
 from datetime import datetime
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, make_response
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, make_response, current_app
+
 from database.models import (
     get_db_connection,
     get_all_products,
@@ -47,9 +48,8 @@ def handle_validation_errors(errors):
 
 @main.route('/')
 def index():
-    """Page d'accueil"""
     try:
-        products = get_all_products()
+        products = get_all_products()  # Toujours récupérer les produits à jour
         return render_template('index.html', products=products)
     except Exception as e:
         logger.error(f"Erreur chargement produits: {e}")
@@ -278,7 +278,7 @@ def scrape_product_prices(product_id):
 
             if failed:
                 failed_shops = [r['shop_name'] for r in failed]
-                flash(f'⚠️ Échecs pour: {", ".join(failed_shops)}', 'warning')
+                flash(f'⚠️ Échec(s) pour: {", ".join(failed_shops)}', 'warning')
 
             if not results:
                 flash('ℹ️ Aucun lien à scraper pour ce produit.', 'info')
@@ -405,7 +405,7 @@ def quick_scrape_product(product_id):
 
         if failed:
             failed_shops = [r['shop_name'] for r in failed]
-            flash(f'⚠️ Échecs pour: {", ".join(failed_shops)}', 'warning')
+            flash(f'⚠️ Échec(s) pour: {", ".join(failed_shops)}', 'warning')
 
         if not results:
             flash('ℹ️ Aucun lien à scraper pour ce produit.', 'info')

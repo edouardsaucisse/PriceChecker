@@ -179,22 +179,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-
-// API de validation côté serveur (bonus)
-async function validateWithServer(field, value) {
-    try {
-        const response = await fetch(`/api/validate/${field}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ [field.replace('-', '_')]: value })
-        });
-
-        const result = await response.json();
-        return result.valid ? "" : result.message;
-    } catch (error) {
-        console.error('Erreur validation serveur:', error);
-        return ""; // En cas d'erreur, on laisse la validation côté client
-    }
-}

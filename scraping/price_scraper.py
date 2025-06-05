@@ -5,15 +5,11 @@ Module de scraping des prix pour PriceChecker
 import re
 import time
 import logging
-from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from fake_useragent import UserAgent
 

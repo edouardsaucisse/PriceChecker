@@ -3,42 +3,51 @@
 {% block title %}{{ product.name }} - PriceChecker{% endblock %}
 
 {% block content %}
-<!-- Corrigez le breadcrumb en haut de page -->
 <nav aria-label="breadcrumb" class="mb-4">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Accueil</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}">Produits</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index')  }}" class="btn btn-sm" title="Retour à l'accueil"><i class="fas fa-home"></i></a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}" class="btn btn-sm" title="Retour aux produits"><i class="fas fa-box-open"></i></a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
     </ol>
 </nav>
 <div class="row">
     <div class="col-md-12">
-        <!-- En-tête du produit -->
         <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1>{{ product.name }}</h1>
-        {% if product.description %}
-        <p class="text-muted">{{ product.description }}</p>
-        {% endif %}
+        <small class="text-muted">
+            📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
+        </small>
     </div>
     <div>
-        <!-- Bouton de mise à jour rapide des prix -->
-        {% if links %}
+        <a href="{{ url_for('main.products') }}"
+            class="btn btn-action-back btn-sm"
+            title="Retour aux produits">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+
         <form method="POST" action="{{ url_for('main.quick_scrape_product', product_id=product.id) }}" class="d-inline">
-            <button type="submit" class="btn btn-outline-primary me-2" 
-                    onclick="this.disabled=true; this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Scraping...'; this.form.submit();">
-                <i class="bi bi-arrow-clockwise"></i> Mettre à jour les prix
+            <button type="submit" class="btn btn-action-scrap btn-sm"
+                onclick="this.disabled=true; this.innerHTML='<i class=\'fa-solid fa-arrows-spin\'></i> Scraping...'; this.form.submit();">
+                <i class="fa-solid fa-arrows-spin"></i>
             </button>
         </form>
-        {% endif %}
-        <a href="{{ url_for('main.edit_product', product_id=product.id) }}" class="btn btn-outline-secondary me-2">
-            <i class="bi bi-pencil"></i> Modifier
+
+        <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
+            class="btn btn-action-edit btn-sm"
+            title="Modifier le produit">
+            <i class="fas fa-edit"></i>
         </a>
-        <a href="{{ url_for('main.products') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Liste des produits
+        <a href="{{ url_for('main.price_history', product_id=product.id) }}"
+            class="btn btn-action-chart btn-sm"
+            title="Historique des prix">
+            <i class="fas fa-chart-line"></i>
         </a>
-        <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
-            <i class="fas fa-trash"></i> Supprimer
+        <button type="button"
+            class="btn btn-action-delete btn-sm"
+            title="Supprimer le produit"
+            onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
+            <i class="fas fa-trash"></i>
         </button>
     </div>
 </div>
@@ -46,16 +55,21 @@
         <div class="d-flex justify-content-between align-items-start mb-4">
             <div>
                 <p class="text-muted">{{ product.description or 'Aucune description' }}</p>
-                <small class="text-muted">
-                    📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
-                </small>
             </div>
         </div>
 
         <!-- Liens de boutiques -->
         <div class="row mb-4">
             <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3>🔗 Liens de boutiques</h3>
+                    <div class="d-flex gap-2 justify-content-center action-buttons">
+                        <a href="{{ url_for('main.add_product_link_route', product_id=product.id) }}"
+                        class="btn btn-action-view btn-sm">
+                        Ajouter un lien <i class="fa-solid fa-square-plus"></i>
+                        </a>
+                    </div>
+                </div>
                 {% set links = get_product_links(product.id) %}
                 {% if links %}
                     <div class="table-responsive">
@@ -63,9 +77,7 @@
                             <thead>
                                 <tr>
                                     <th>Boutique</th>
-                                    <th>URL</th>
                                     <th>Prix actuel</th>
-                                    <th>Sélecteur CSS</th>
                                     <th>Ajouté le</th>
                                     <th>Actions</th>
                                 </tr>
@@ -74,15 +86,21 @@
                                 {% for link in links %}
                                 <tr>
                                     <td>
-                                        <strong>{{ link.shop_name }}</strong>
+                                        {% set shop_slug = link.shop_name|lower|replace(' ', '-')|replace('store', '') %}
+                                        {% set shop_class = 'shop-' + shop_slug %}
+                                        {% if shop_class not in ['shop-amazon', 'shop-apple', 'shop-fnac', 'shop-cdiscount', 'shop-leclerc'] %}
+                                        {% set shop_class = 'shop-default' %}
+                                        {% endif %}
+
+                                        <span class="shop-badge {{ shop_class }}">
+                                            <a href="{{ link.url }}" target="_blank">
+                                                {{ link.shop_name }}
+                                            </a>
+                                        </span>
                                     </td>
+
                                     <td>
-                                        <a href="{{ link.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                            🔗 Ouvrir
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <!-- ✅ LOGIQUE CORRIGÉE : utiliser selectattr pour filtrer -->
+
                                         {% set matching_prices = prices | selectattr('shop_name', 'equalto', link.shop_name) | list %}
 
                                         {% if matching_prices %}
@@ -100,13 +118,6 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if link.css_selector %}
-                                            <code class="small">{{ link.css_selector[:30] }}{% if link.css_selector|length > 30 %}...{% endif %}</code>
-                                        {% else %}
-                                            <span class="text-muted">Aucun</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
                                         <small class="text-muted">
                                             {{ link.created_at.split(' ')[0] if link.created_at else 'N/A' }}
                                         </small>
@@ -116,33 +127,22 @@
                                               action="{{ url_for('main.delete_link', product_id=product.id, link_id=link.id) }}"
                                               style="display: inline;"
                                               onsubmit="return confirm('Supprimer ce lien de {{ link.shop_name }} ?');">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                🗑️ Supprimer
+                                            <button type="submit" class="btn btn-shop-delete btn-shop" title="Supprimer le lien">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+
+
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- ✅ BOUTON AJOUT : maintenant affiché même quand il y a déjà des liens -->
-                    <div class="mt-3">
-                        <a href="{{ url_for('main.add_product_link_route', product_id=product.id) }}"
-                           class="btn btn-success">
-                            ➕ Ajouter un nouveau lien
-                        </a>
-                    </div>
-
                 {% else %}
                     <div class="alert alert-info">
                         <h6 class="alert-heading">ℹ️ Aucun lien configuré</h6>
                         <p class="mb-2">Aucun lien de boutique n'a encore été ajouté pour ce produit.</p>
-                        <a href="{{ url_for('main.add_product_link_route', product_id=product.id) }}"
-                           class="btn btn-primary btn-sm">
-                            ➕ Ajouter le premier lien
-                        </a>
                     </div>
                 {% endif %}
             </div>
