@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+
+{% block title %}Scraping des prix - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}">Produits</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.product_detail', product_id=product.id) }}">{{ product.name }}</a></li>
+                    <li class="breadcrumb-item active">Scraping des prix</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Titre et boutons d'action -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>🔄 Scraping des prix</h2>
+                <div>
+                    <button id="startScraping" class="btn btn-primary me-2">
+                        <i class="bi bi-arrow-clockwise"></i> Lancer le scraping
+                    </button>
+                    <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 Statistiques de scraping</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="h4 text-primary">{{ stats.total_scrapes }}</div>
+                            <div class="text-muted">Total scrapes</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 text-success">{{ stats.successful_scrapes }}</div>
+                            <div class="text-muted">Succès</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 text-danger">{{ stats.errors }}</div>
+                            <div class="text-muted">Erreurs</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 text-info">{{ stats.success_rate }}%</div>
+                            <div class="text-muted">Taux de succès</div>
+                        </div>
+                    </div>
+                    {% if stats.last_scrape %}
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            Dernier scraping: {{ moment(stats.last_scrape).format('LLLL') }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Liste des liens à scraper -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">🔗 Liens configurés ({{ links|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if links %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Boutique</th>
+                                    <th>URL</th>
+                                    <th>Sélecteur CSS</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for link in links %}
+                                <tr id="link-{{ link.id }}">
+                                    <td>
+                                        <strong>{{ link.shop_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="{{ link.url }}" target="_blank" class="text-decoration-none">
+                                            {{ link.url[:50] }}{% if link.url|length > 50 %}...{% endif %}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if link.css_selector %}
+                                            <code class="small">{{ link.css_selector }}</code>
+                                        {% else %}
+                                            <span class="text-muted">Auto-détection</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set shop_price = latest_prices | selectattr('shop_name', 'equalto', link.shop_name) | first %}
+                                        {% if shop_price %}
+                                            {% if shop_price.scraped_at %}
+                                                {% if shop_price.is_available and shop_price.price %}
+                                                    <span class="badge bg-success">{{ shop_price.price }} {{ shop_price.currency }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Erreur</span>
+                                                {% endif %}
+                                                <br><small class="text-muted">{{ moment(shop_price.scraped_at).fromNow() }}</small>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Jamais testé</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Aucune donnée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary scrape-single" 
+                                                data-link-id="{{ link.id }}"
+                                                data-shop-name="{{ link.shop_name }}">
+                                            <i class="bi bi-arrow-clockwise"></i> Test
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="text-muted mb-3">
+                            <i class="bi bi-link-45deg" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="text-muted">Aucun lien configuré pour ce produit.</p>
+                        <a href="{{ url_for('main.add_link', product_id=product.id) }}" class="btn btn-primary">
+                            <i class="bi bi-plus"></i> Ajouter un lien
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Zone de logs en temps réel -->
+            <div class="card mt-4" id="logsCard" style="display: none;">
+                <div class="card-header">
+                    <h6 class="mb-0">📋 Logs de scraping</h6>
+                </div>
+                <div class="card-body">
+                    <pre id="scrapingLogs" class="bg-dark text-light p-3 rounded" style="max-height: 300px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar - Statut des boutiques -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">🏪 Statut actuel des boutiques</h6>
+                </div>
+                <div class="card-body">
+                    {% if latest_prices %}
+                    <div class="list-group list-group-flush">
+                        {% for price in latest_prices %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <div class="fw-bold">{{ price.shop_name }}</div>
+                                {% if price.scraped_at %}
+                                    <small class="text-muted">{{ moment(price.scraped_at).fromNow() }}</small>
+                                {% else %}
+                                    <small class="text-warning">Jamais scrapé</small>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                {% if price.is_available and price.price %}
+                                    <div class="fw-bold text-success">{{ price.price }} {{ price.currency }}</div>
+                                    <div class="badge bg-success">Disponible</div>
+                                {% elif price.scraped_at %}
+                                    <div class="text-danger small">{{ price.error_message or "Indisponible" }}</div>
+                                    <div class="badge bg-danger">Erreur</div>
+                                {% else %}
+                                    <div class="badge bg-secondary">À tester</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-shop" style="font-size: 2rem;"></i>
+                        <p class="mt-2">Aucune boutique configurée</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Résumé rapide -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">📈 Résumé</h6>
+                </div>
+                <div class="card-body">
+                    {% if latest_prices %}
+                        {% set available_prices = latest_prices | selectattr('is_available') | selectattr('price') | list %}
+                        {% set error_prices = latest_prices | rejectattr('is_available') | selectattr('scraped_at') | list %}
+                        {% set never_scraped = latest_prices | rejectattr('scraped_at') | list %}
+                        
+                        <div class="row text-center small">
+                            <div class="col-4">
+                                <div class="h5 text-success">{{ available_prices|length }}</div>
+                                <div class="text-muted">Prix trouvés</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="h5 text-danger">{{ error_prices|length }}</div>
+                                <div class="text-muted">Erreurs</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="h5 text-secondary">{{ never_scraped|length }}</div>
+                                <div class="text-muted">Non testés</div>
+                            </div>
+                        </div>
+                        
+                        {% if available_prices %}
+                        <hr>
+                        <div class="text-center">
+                            {% set min_price = available_prices | map(attribute='price') | min %}
+                            {% set max_price = available_prices | map(attribute='price') | max %}
+                            <div class="small">
+                                <strong>Prix:</strong> {{ min_price }} € 
+                                {% if min_price != max_price %}→ {{ max_price }} €{% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <p>Aucune donnée disponible</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Aide -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">💡 Aide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <p><strong>Scraping complet:</strong> Lance le scraping de tous les liens configurés.</p>
+                        <p><strong>Test individuel:</strong> Teste un seul lien pour vérifier sa configuration.</p>
+                        <p><strong>Auto-détection:</strong> Si aucun sélecteur CSS n'est défini, le système essaiera de détecter automatiquement le prix.</p>
+                        <div class="mt-2">
+                            <span class="badge bg-success">Disponible</span> Prix trouvé récemment<br>
+                            <span class="badge bg-danger">Erreur</span> Problème lors du dernier scraping<br>
+                            <span class="badge bg-secondary">À tester</span> Jamais scrapé
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript pour le scraping AJAX -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startScrapingBtn = document.getElementById('startScraping');
+    const logsCard = document.getElementById('logsCard');
+    const logsElement = document.getElementById('scrapingLogs');
+    
+    // Fonction pour ajouter un log
+    function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logClass = {
+            'info': 'text-info',
+            'success': 'text-success', 
+            'warning': 'text-warning',
+            'error': 'text-danger'
+        }[type] || 'text-light';
+        
+        logsElement.innerHTML += `<span class="${logClass}">[${timestamp}] ${message}</span>\n`;
+        logsElement.scrollTop = logsElement.scrollHeight;
+    }
+    
+    // Scraping complet
+    startScrapingBtn.addEventListener('click', function() {
+        const button = this;
+        const originalText = button.innerHTML;
+        
+        // Désactiver le bouton et afficher les logs
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Scraping en cours...';
+        logsCard.style.display = 'block';
+        logsElement.innerHTML = '';
+        
+        addLog('🚀 Démarrage du scraping...', 'info');
+        
+        // Requête AJAX
+        fetch(`{{ url_for('main.scrape_product_ajax', product_id=product.id) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addLog(`✅ ${data.message}`, 'success');
+                
+                // Détailler les résultats
+                data.results.forEach(result => {
+                    if (result.success) {
+                        addLog(`  ✓ ${result.shop_name}: ${result.price} ${result.currency}`, 'success');
+                    } else {
+                        addLog(`  ✗ ${result.shop_name}: ${result.error_message}`, 'error');
+                    }
+                });
+                
+                // Recharger la page après 3 secondes
+                addLog('🔄 Rechargement de la page dans 3 secondes...', 'info');
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("main.product_detail", product_id=product.id) }}';
+                }, 3000);
+                
+            } else {
+                addLog(`❌ Erreur: ${data.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            addLog(`❌ Erreur réseau: ${error.message}`, 'error');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
+    });
+    
+    // Scraping individuel
+    document.querySelectorAll('.scrape-single').forEach(button => {
+        button.addEventListener('click', function() {
+            const linkId = this.dataset.linkId;
+            const shopName = this.dataset.shopName;
+            const originalText = this.innerHTML;
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+            
+            // Requête pour scraper un seul lien
+            fetch(`{{ url_for('main.scrape_single_link', link_id='LINK_ID') }}`.replace('LINK_ID', linkId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(() => {
+                // Recharger la page pour voir les résultats
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                this.disabled = false;
+                this.innerHTML = originalText;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

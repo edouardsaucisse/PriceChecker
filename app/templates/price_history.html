@@ -1,0 +1,461 @@
+
+{% extends "base.html" %}
+
+{% block title %}Historique des prix - {{ product.name }}{% endblock %}
+
+{% block extra_head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+
+{% endblock %}
+
+{% block content %}
+    <!-- Votre contenu HTML reste identique -->
+    <div class="container-fluid">
+        <!-- En-tête -->
+        <div class="row mb-4">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}">Produits</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('main.product_detail', product_id=product.id) }}">{{ product.name }}</a></li>
+                        <li class="breadcrumb-item active">Historique des prix</li>
+                    </ol>
+                </nav>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3">📊 Historique des prix</h1>
+                        <p class="text-muted">{{ product.name }}</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="btn btn-outline-secondary">
+                            ← Retour au produit
+                        </a>
+                        <a href="{{ url_for('main.export_price_history', product_id=product.id) }}" class="btn btn-success">
+                            📊 Export CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contrôles de période -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <div class="d-flex align-items-center">
+                            <span class="me-3"><strong>Période :</strong></span>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="days" id="days7" value="7" {% if current_days == 7 %}checked{% endif %}>
+                                <label class="btn btn-outline-primary btn-sm" for="days7">7 jours</label>
+
+                                <input type="radio" class="btn-check" name="days" id="days30" value="30" {% if current_days == 30 %}checked{% endif %}>
+                                <label class="btn btn-outline-primary btn-sm" for="days30">30 jours</label>
+
+                                <input type="radio" class="btn-check" name="days" id="days90" value="90" {% if current_days == 90 %}checked{% endif %}>
+                                <label class="btn btn-outline-primary btn-sm" for="days90">90 jours</label>
+
+                                <input type="radio" class="btn-check" name="days" id="days365" value="365" {% if current_days == 365 %}checked{% endif %}>
+                                <label class="btn btn-outline-primary btn-sm" for="days365">1 an</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        {% if stats %}
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stats-card border-success">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">{{ "%.2f"|format(stats.min_price) }} €</h3>
+                            <p class="card-text text-muted mb-0">Prix minimum</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card border-danger">
+                        <div class="card-body text-center">
+                            <h3 class="text-danger">{{ "%.2f"|format(stats.max_price) }} €</h3>
+                            <p class="card-text text-muted mb-0">Prix maximum</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card border-info">
+                        <div class="card-body text-center">
+                            <h3 class="text-info">{{ "%.2f"|format(stats.avg_price) }} €</h3>
+                            <p class="card-text text-muted mb-0">Prix moyen</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card border-warning">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning">{{ stats.total_scrapes }}</h3>
+                            <p class="card-text text-muted mb-0">Relevés</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Graphique -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📈 Évolution des prix</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="priceChart" style="display: none;"></canvas>
+                            <div id="chartLoading" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Chargement...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Chargement du graphique...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau d'historique -->
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">📋 Historique détaillé</h5>
+                        <div>
+                            <select class="form-select form-select-sm" id="shopFilter">
+                                <option value="">Toutes les boutiques</option>
+                                {% for shop in shops %}
+                                    <option value="{{ shop }}" {% if current_shop == shop %}selected{% endif %}>{{ shop }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if history_data.data %}
+                            <div class="table-responsive">
+                                <table class="table table-striped mb-0">
+                                    <thead class="table-dark">
+                                    <tr>
+                                        <th>Date et heure</th>
+                                        <th>Boutique</th>
+                                        <th>Prix</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for item in history_data.data %}
+                                        <tr>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ item.scraped_at.replace('T', ' ')[:16] if item.scraped_at else 'N/A' }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% set shop_slug = item.shop_name|lower|replace(' ', '-')|replace('store', 'store') %}
+                                                {% set shop_class = 'shop-' + shop_slug %}
+                                                {% if shop_class not in ['shop-amazon', 'shop-apple-store', 'shop-fnac', 'shop-cdiscount', 'shop-leclerc'] %}
+                                                    {% set shop_class = 'shop-default' %}
+                                                {% endif %}
+
+                                                <span class="shop-badge {{ shop_class }}">
+                                                    {{ item.shop_name }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if item.price %}
+                                                    <span class="badge bg-success">{{ "%.2f"|format(item.price) }} {{ item.currency }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">N/A</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if item.is_available %}
+                                                    <span class="badge bg-success">✅ Disponible</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">❌ Indisponible</span>
+                                                    {% if item.error_message %}
+                                                        <br><small class="text-muted">{{ item.error_message[:50] }}...</small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ item.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    🔗 Voir
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            {% if history_data.pagination.pages > 1 %}
+                                <div class="card-footer">
+                                    <nav>
+                                        <ul class="pagination pagination-sm mb-0 justify-content-center">
+                                            {% if history_data.pagination.has_prev %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ history_data.pagination.page - 1 }}&days={{ current_days }}{% if current_shop %}&shop={{ current_shop }}{% endif %}">Précédent</a>
+                                                </li>
+                                            {% endif %}
+
+                                            {% for page_num in range(1, history_data.pagination.pages + 1) %}
+                                                {% if page_num <= 5 or page_num > history_data.pagination.pages - 5 or (page_num >= history_data.pagination.page - 2 and page_num <= history_data.pagination.page + 2) %}
+                                                    <li class="page-item {% if page_num == history_data.pagination.page %}active{% endif %}">
+                                                        <a class="page-link" href="?page={{ page_num }}&days={{ current_days }}{% if current_shop %}&shop={{ current_shop }}{% endif %}">{{ page_num }}</a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            {% if history_data.pagination.has_next %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ history_data.pagination.page + 1 }}&days={{ current_days }}{% if current_shop %}&shop={{ current_shop }}{% endif %}">Suivant</a>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                </div>
+                            {% endif %}
+
+                        {% else %}
+                            <div class="alert alert-info m-3">
+                                <h6 class="alert-heading">ℹ️ Aucun historique</h6>
+                                <p class="mb-0">Aucun prix n'a encore été collecté pour ce produit.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ UN SEUL SCRIPT À LA FIN -->
+    <script>
+        // ✅ Déclarer dans une portée isolée
+        (function() {
+            let priceChart = null;
+
+            async function loadChart(days = 30, shopFilter = null) {
+                const chartCanvas = document.getElementById('priceChart');
+                const loading = document.getElementById('chartLoading');
+
+                if (!chartCanvas || !loading) {
+                    console.error('❌ Éléments DOM introuvables !');
+                    return;
+                }
+
+                try {
+                    console.log(`🔍 Chargement graphique: ${days} jours, boutique: ${shopFilter || 'toutes'}`);
+
+                    loading.style.display = 'block';
+                    chartCanvas.style.display = 'none';
+
+                    let apiUrl = `/product/{{ product.id }}/history/chart-data?days=${days}`;
+                    if (shopFilter && shopFilter !== '') {
+                        apiUrl += `&shop=${encodeURIComponent(shopFilter)}`;
+                    }
+
+                    console.log(`🌐 Appel API: ${apiUrl}`);
+                    const response = await fetch(apiUrl);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const chartData = await response.json();
+                    console.log('📊 Données graphique reçues:', chartData);
+
+                    if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
+                        loading.innerHTML = `
+                            <div class="alert alert-info">
+                                <h6>ℹ️ Aucune donnée</h6>
+                                <p class="mb-0">Aucune donnée disponible pour cette période${shopFilter ? ' et cette boutique' : ''}.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    if (priceChart) {
+                        priceChart.destroy();
+                        priceChart = null;
+                        console.log('🗑️ Ancien graphique détruit');
+                    }
+
+                    const ctx = chartCanvas.getContext('2d');
+                    priceChart = new Chart(ctx, {
+                        type: 'line',
+                        data: chartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: `Évolution des prix (${days} derniers jours)`,
+                                    font: {
+                                        size: 16,
+                                        weight: 'bold'
+                                    }
+                                },
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        title: function(context) {
+                                            if (!context || !context[0]) return '';
+                                            const date = new Date(context[0].parsed.x);
+                                            return date.toLocaleDateString('fr-FR', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            });
+                                        },
+                                        label: function(context) {
+                                            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} €`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    type: 'time',
+                                    time: {
+                                        parser: 'yyyy-MM-dd HH:mm',
+                                        tooltipFormat: 'dd/MM/yyyy HH:mm',
+                                        displayFormats: {
+                                            hour: 'dd/MM HH:mm',
+                                            day: 'dd/MM',
+                                            week: 'dd/MM',
+                                            month: 'MMM yyyy'
+                                        },
+                                        unit: days <= 7 ? 'hour' : (days <= 30 ? 'day' : 'week')
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Date'
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: false,
+                                    title: {
+                                        display: true,
+                                        text: 'Prix (€)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value.toFixed(2) + ' €';
+                                        }
+                                    }
+                                }
+                            },
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            elements: {
+                                point: {
+                                    radius: 4,
+                                    hoverRadius: 8
+                                },
+                                line: {
+                                    tension: 0.1,
+                                    borderWidth: 3
+                                }
+                            }
+                        }
+                    });
+
+                    chartCanvas.style.display = 'block';
+                    loading.style.display = 'none';
+
+                    console.log('✅ Graphique créé avec succès');
+
+                } catch (error) {
+                    console.error('❌ Erreur chargement graphique:', error);
+                    loading.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>❌ Erreur de chargement</h6>
+                            <p class="mb-0">Impossible de charger le graphique: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('🚀 Page chargée, initialisation...');
+
+                const currentShop = '{{ current_shop if current_shop else "" }}';
+                loadChart({{ current_days }}, currentShop);
+
+                // Boutons de période
+                document.querySelectorAll('input[name="days"]').forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        if (this.checked) {
+                            const days = parseInt(this.value);
+                            console.log(`📅 Changement période: ${days} jours`);
+
+                            const shopFilterElement = document.getElementById('shopFilter');
+                            const shopFilter = shopFilterElement ? shopFilterElement.value : null;
+                            loadChart(days, shopFilter);
+
+                            setTimeout(() => {
+                                const url = new URL(window.location);
+                                url.searchParams.set('days', days);
+                                if (shopFilter) {
+                                    url.searchParams.set('shop', shopFilter);
+                                } else {
+                                    url.searchParams.delete('shop');
+                                }
+                                window.location.href = url.toString();
+                            }, 500);
+                        }
+                    });
+                });
+
+                // Filtre boutique
+                const shopFilterSelect = document.getElementById('shopFilter');
+                if (shopFilterSelect) {
+                    shopFilterSelect.addEventListener('change', function() {
+                        const shop = this.value;
+                        const days = {{ current_days }};
+                        console.log(`🏪 Changement boutique: ${shop || 'toutes'}`);
+
+                        loadChart(days, shop);
+
+                        setTimeout(() => {
+                            const url = new URL(window.location);
+                            url.searchParams.set('days', days);
+                            if (shop) {
+                                url.searchParams.set('shop', shop);
+                            } else {
+                                url.searchParams.delete('shop');
+                            }
+                            window.location.href = url.toString();
+                        }, 500);
+                    });
+                }
+            });
+        })();
+    </script>
+{% endblock %}

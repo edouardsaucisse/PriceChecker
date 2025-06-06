@@ -10,7 +10,7 @@
                 <h4 class="mb-0">➕ Ajouter un nouveau produit</h4>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" id="productForm">
                     <div class="mb-3">
                         <label for="name" class="form-label">Nom du produit *</label>
                         <input type="text" 
@@ -18,8 +18,10 @@
                                id="name" 
                                name="name" 
                                required
+                               value="{{ name or '' }}"
                                placeholder="Ex: iPhone 15 Pro, Samsung Galaxy S24...">
                         <div class="form-text">Le nom du produit à surveiller</div>
+                        <div class="invalid-feedback" id="name-error"></div>
                     </div>
                     
                     <div class="mb-3">
@@ -28,12 +30,13 @@
                                   id="description" 
                                   name="description" 
                                   rows="3"
-                                  placeholder="Ajoutez des détails comme la couleur, la capacité, etc."></textarea>
+                                  placeholder="Ajoutez des détails comme la couleur, la capacité, etc.">{{ description or '' }}</textarea>
                         <div class="form-text">Informations supplémentaires pour identifier le produit</div>
+                        <div class="invalid-feedback" id="description-error"></div>
                     </div>
                     
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('main.products') }}" class="btn btn-secondary me-md-2">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('main.products') }}" class="btn btn-secondary">
                             Annuler
                         </a>
                         <button type="submit" class="btn btn-success">
@@ -43,7 +46,7 @@
                 </form>
             </div>
         </div>
-        
+
         <div class="mt-4">
             <div class="alert alert-info">
                 <h6 class="alert-heading">💡 Étapes suivantes</h6>
@@ -56,5 +59,72 @@
     </div>
 </div>
 {% endblock %}
-</body>
-</html>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('productForm');
+    const nameInput = document.getElementById('name');
+    const descriptionInput = document.getElementById('description');
+    
+    // Validation en temps réel
+    nameInput.addEventListener('input', function() {
+        validateField('name', this.value);
+    });
+    
+    descriptionInput.addEventListener('input', function() {
+        validateField('description', this.value);
+    });
+    
+    // Validation à la soumission
+    form.addEventListener('submit', function(e) {
+        const nameValid = validateField('name', nameInput.value);
+        const descriptionValid = validateField('description', descriptionInput.value);
+        
+        if (!nameValid || !descriptionValid) {
+            e.preventDefault();
+        }
+    });
+    
+    function validateField(fieldName, value) {
+        const field = document.getElementById(fieldName);
+        const errorDiv = document.getElementById(fieldName + '-error');
+        let isValid = true;
+        let errorMessage = '';
+        
+        // Validation du nom
+        if (fieldName === 'name') {
+            if (!value.trim()) {
+                isValid = false;
+                errorMessage = 'Le nom du produit est obligatoire';
+            } else if (value.trim().length < 2) {
+                isValid = false;
+                errorMessage = 'Le nom doit contenir au moins 2 caractères';
+            } else if (value.trim().length > 100) {
+                isValid = false;
+                errorMessage = 'Le nom ne peut pas dépasser 100 caractères';
+            }
+        }
+        
+        // Validation de la description
+        if (fieldName === 'description' && value.trim().length > 500) {
+            isValid = false;
+            errorMessage = 'La description ne peut pas dépasser 500 caractères';
+        }
+        
+        // Affichage des erreurs
+        if (isValid) {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            errorDiv.textContent = '';
+        } else {
+            field.classList.remove('is-valid');
+            field.classList.add('is-invalid');
+            errorDiv.textContent = errorMessage;
+        }
+        
+        return isValid;
+    }
+});
+</script>
+{% endblock %}

@@ -3,28 +3,155 @@
 {% block title %}{{ product.name }} - PriceChecker{% endblock %}
 
 {% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index')  }}" class="btn btn-sm" title="Retour à l'accueil"><i class="fas fa-home"></i></a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}" class="btn btn-sm" title="Retour aux produits"><i class="fas fa-box-open"></i></a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+    </ol>
+</nav>
 <div class="row">
     <div class="col-md-12">
-        <!-- En-tête du produit -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>{{ product.name }}</h1>
+        <small class="text-muted">
+            📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
+        </small>
+    </div>
+    <div>
+        <a href="{{ url_for('main.products') }}"
+            class="btn btn-action-back btn-sm"
+            title="Retour aux produits">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+
+        <form method="POST" action="{{ url_for('main.quick_scrape_product', product_id=product.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-action-scrap btn-sm"
+                onclick="this.disabled=true; this.innerHTML='<i class=\'fa-solid fa-arrows-spin\'></i> Scraping...'; this.form.submit();">
+                <i class="fa-solid fa-arrows-spin"></i>
+            </button>
+        </form>
+
+        <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
+            class="btn btn-action-edit btn-sm"
+            title="Modifier le produit">
+            <i class="fas fa-edit"></i>
+        </a>
+        <a href="{{ url_for('main.price_history', product_id=product.id) }}"
+            class="btn btn-action-chart btn-sm"
+            title="Historique des prix">
+            <i class="fas fa-chart-line"></i>
+        </a>
+        <button type="button"
+            class="btn btn-action-delete btn-sm"
+            title="Supprimer le produit"
+            onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
+</div>
+
         <div class="d-flex justify-content-between align-items-start mb-4">
             <div>
-                <h1>{{ product.name }}</h1>
                 <p class="text-muted">{{ product.description or 'Aucune description' }}</p>
-                <small class="text-muted">
-                    📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
-                </small>
-            </div>
-            <div>
-                <a href="{{ url_for('main.products') }}" class="btn btn-outline-secondary">
-                    ← Retour à la liste
-                </a>
             </div>
         </div>
 
-        <!-- Prix actuels -->
+        <!-- Liens de boutiques -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>🔗 Liens de boutiques</h3>
+                    <div class="d-flex gap-2 justify-content-center action-buttons">
+                        <a href="{{ url_for('main.add_product_link_route', product_id=product.id) }}"
+                        class="btn btn-action-view btn-sm">
+                        Ajouter un lien <i class="fa-solid fa-square-plus"></i>
+                        </a>
+                    </div>
+                </div>
+                {% set links = get_product_links(product.id) %}
+                {% if links %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Boutique</th>
+                                    <th>Prix actuel</th>
+                                    <th>Ajouté le</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for link in links %}
+                                <tr>
+                                    <td>
+                                        {% set shop_slug = link.shop_name|lower|replace(' ', '-')|replace('store', '') %}
+                                        {% set shop_class = 'shop-' + shop_slug %}
+                                        {% if shop_class not in ['shop-amazon', 'shop-apple', 'shop-fnac', 'shop-cdiscount', 'shop-leclerc'] %}
+                                        {% set shop_class = 'shop-default' %}
+                                        {% endif %}
+
+                                        <span class="shop-badge {{ shop_class }}">
+                                            <a href="{{ link.url }}" target="_blank">
+                                                {{ link.shop_name }}
+                                            </a>
+                                        </span>
+                                    </td>
+
+                                    <td>
+
+                                        {% set matching_prices = prices | selectattr('shop_name', 'equalto', link.shop_name) | list %}
+
+                                        {% if matching_prices %}
+                                            {% set price = matching_prices[0] %}
+                                            {% if price.price %}
+                                                <span class="badge bg-success">{{ "%.2f"|format(price.price) }} {{ price.currency }}</span>
+                                                {% if not price.is_available %}
+                                                    <br><small class="text-warning">⚠️ Indisponible</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">Prix à venir</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Prix à venir</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ link.created_at.split(' ')[0] if link.created_at else 'N/A' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <form method="POST"
+                                              action="{{ url_for('main.delete_link', product_id=product.id, link_id=link.id) }}"
+                                              style="display: inline;"
+                                              onsubmit="return confirm('Supprimer ce lien de {{ link.shop_name }} ?');">
+                                            <button type="submit" class="btn btn-shop-delete btn-shop" title="Supprimer le lien">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+
+
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">ℹ️ Aucun lien configuré</h6>
+                        <p class="mb-2">Aucun lien de boutique n'a encore été ajouté pour ce produit.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Prix actuels (historique) -->
         <div class="row">
             <div class="col-md-12">
-                <h3>💰 Prix actuels</h3>
+                <h3>💰 Historique des prix</h3>
                 
                 {% if prices %}
                     <div class="row">
@@ -71,40 +198,63 @@
                     </div>
                 {% else %}
                     <div class="alert alert-warning">
-                        <h6 class="alert-heading">⚠️ Aucun prix disponible</h6>
+                        <h6 class="alert-heading">⚠️ Aucun prix dans l'historique</h6>
                         <p class="mb-0">
-                            Aucun lien de boutique n'a encore été ajouté pour ce produit. 
-                            Les fonctionnalités de scraping seront disponibles dans les prochaines étapes.
+                            Aucun prix n'a encore été collecté pour ce produit. 
+                            Les prix apparaîtront ici après la première collecte automatique.
                         </p>
                     </div>
                 {% endif %}
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Actions -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <div class="card bg-light">
-                    <div class="card-body">
-                        <h5 class="card-title">🔧 Actions disponibles</h5>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-primary" disabled>
-                                ➕ Ajouter un lien boutique
-                            </button>
-                            <button type="button" class="btn btn-outline-info" disabled>
-                                🔔 Configurer une alerte
-                            </button>
-                            <button type="button" class="btn btn-outline-success" disabled>
-                                🔄 Vérifier les prix maintenant
-                            </button>
-                        </div>
-                        <small class="d-block mt-2 text-muted">
-                            Ces fonctionnalités seront implémentées dans les prochaines étapes
-                        </small>
-                    </div>
-                </div>
+<div class="modal fade" id="deleteProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>⚠️ Attention !</strong> Cette action est irréversible.
+                </p>
+                <p>
+                    Voulez-vous vraiment supprimer le produit <strong>{{ product.name }}</strong> ?
+                </p>
+                <p class="text-muted small">
+                    Cela supprimera également :
+                </p>
+                <ul class="text-muted small">
+                    <li>Tous les liens vers les boutiques ({{ product_links|length }} liens)</li>
+                    <li>Tout l'historique des prix collectés</li>
+                    <li>Toutes les statistiques associées</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <form method="POST" action="{{ url_for('main.delete_product_route', product_id=product.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer définitivement
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function confirmDeleteProduct(productId, productName) {
+    // Afficher le modal de confirmation
+    const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+    modal.show();
+}
+</script>
+
 {% endblock %}

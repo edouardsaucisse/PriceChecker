@@ -1,6 +1,6 @@
 ﻿# 🏷️ PriceChecker
 
-**Application Flask de surveillance automatique des prix en ligne**
+**Application de surveillance automatique des prix en ligne**
 
 ## 📋 Description
 
