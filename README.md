@@ -2,7 +2,7 @@
 
 **Application web de surveillance automatique des prix en ligne**
 
-![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.4.1-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.13%2B-green.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 
@@ -49,8 +49,7 @@ PriceChecker permet de surveiller automatiquement les prix de produits sur diff�
 └── 🧪 Tests: pytest, coverage
 ```
 ## 📸 **Screenshots de l'application**
-
-<summary>🖱️ <strong>Cliquez pour voir toutes les captures d'écran</strong></summary>
+🖱️ Cliquez pour voir toutes les captures d'écran
 <details>
 
 ### **Page d'accueil**
