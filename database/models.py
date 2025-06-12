@@ -84,6 +84,7 @@ def init_db():
             css_selector TEXT,
             is_active BOOLEAN DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
         );
     ''')

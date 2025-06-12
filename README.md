@@ -2,8 +2,8 @@
 
 **Application web de surveillance automatique des prix en ligne**
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Python](https://img.shields.io/badge/python-3.8%2B-green.svg)
+![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)
+![Python](https://img.shields.io/badge/python-3.13%2B-green.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 
 
@@ -48,6 +48,55 @@ PriceChecker permet de surveiller automatiquement les prix de produits sur diff�
 ├── 📊 Charts: Chart.js, Moment.js
 └── 🧪 Tests: pytest, coverage
 ```
+## 📸 **Screenshots de l'application**
+
+<summary>🖱️ <strong>Cliquez pour voir toutes les captures d'écran</strong></summary>
+<details>
+
+### **Page d'accueil**
+<div>
+  <a href="docs/screenshots/01-accueil.png" target="_blank">
+    <img src="docs/screenshots/01-accueil.png" width="400" alt="Page d'accueil" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </a>
+</div>
+
+### **Ajout d'un produit**
+<div>
+  <a href="docs/screenshots/02-ajoutproduit.png" target="_blank">
+    <img src="docs/screenshots/02-ajoutproduit.png" width="400" alt="Ajout d'un produit" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </a>
+</div>
+
+### **Liste des produits**
+<div>
+  <a href="docs/screenshots/03-listeproduits.png" target="_blank">
+    <img src="docs/screenshots/03-listeproduits.png" width="400" alt="Liste des produits" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </a>
+</div>
+
+### **Détail d'un produit**
+<div>
+  <a href="docs/screenshots/04-detailproduit.png" target="_blank">
+    <img src="docs/screenshots/04-detailproduit.png" width="400" alt="Détail d'un produit" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </a>
+</div>
+
+### **Edition d'un lien de boutique**
+<div>
+  <a href="docs/screenshots/06-editionlien.png" target="_blank">
+    <img src="docs/screenshots/06-editionlien.png" width="400" alt="Edition d'un lien de boutique" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </a>
+</div>
+
+### **Historique d'un produit**
+<div>
+  <a href="docs/screenshots/05-historiqueproduit.png" target="_blank">
+    <img src="docs/screenshots/05-historiqueproduit.png" width="400" alt="Historique d'un produit" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </a>
+</div>
+
+</details>
+
 
 ## 🚀 **Installation**
 
