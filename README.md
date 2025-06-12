@@ -2,7 +2,7 @@
 
 **Application web de surveillance automatique des prix en ligne**
 
-![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.4.2-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.13%2B-green.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 
@@ -50,48 +50,48 @@ PriceChecker permet de surveiller automatiquement les prix de produits sur diff�
 ```
 ## 📸 **Screenshots de l'application**
 
-<summary>🖱️ <strong>Cliquez pour voir toutes les captures d'écran</strong></summary>
+🖱️ Cliquez pour voir toutes les captures d'écran
 <details>
 
 ### **Page d'accueil**
 <div>
   <a href="docs/screenshots/01-accueil.png" target="_blank">
-    <img src="docs/screenshots/01-accueil.png" width="400" alt="Page d'accueil" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/screenshots/01-accueil.png" width="400" alt="Page d'accueil" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </a>
 </div>
 
 ### **Ajout d'un produit**
 <div>
   <a href="docs/screenshots/02-ajoutproduit.png" target="_blank">
-    <img src="docs/screenshots/02-ajoutproduit.png" width="400" alt="Ajout d'un produit" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/screenshots/02-ajoutproduit.png" width="400" alt="Ajout d'un produit" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </a>
 </div>
 
 ### **Liste des produits**
 <div>
   <a href="docs/screenshots/03-listeproduits.png" target="_blank">
-    <img src="docs/screenshots/03-listeproduits.png" width="400" alt="Liste des produits" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/screenshots/03-listeproduits.png" width="400" alt="Liste des produits" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </a>
 </div>
 
 ### **Détail d'un produit**
 <div>
   <a href="docs/screenshots/04-detailproduit.png" target="_blank">
-    <img src="docs/screenshots/04-detailproduit.png" width="400" alt="Détail d'un produit" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/screenshots/04-detailproduit.png" width="400" alt="Détail d'un produit" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </a>
 </div>
 
 ### **Edition d'un lien de boutique**
 <div>
   <a href="docs/screenshots/06-editionlien.png" target="_blank">
-    <img src="docs/screenshots/06-editionlien.png" width="400" alt="Edition d'un lien de boutique" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/screenshots/06-editionlien.png" width="400" alt="Edition d'un lien de boutique" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </a>
 </div>
 
 ### **Historique d'un produit**
 <div>
   <a href="docs/screenshots/05-historiqueproduit.png" target="_blank">
-    <img src="docs/screenshots/05-historiqueproduit.png" width="400" alt="Historique d'un produit" width="200" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/screenshots/05-historiqueproduit.png" width="400" alt="Historique d'un produit" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </a>
 </div>
 
@@ -371,10 +371,10 @@ python run.py
 
 ## 📞 **Support et contribution**
 
-- 🐛 **Issues** : [GitHub Issues](repository-url/issues)
-- 📧 **Email** : N/A
-- 📖 **Documentation** : [Wiki](repository-url/wiki)
-- 💬 **Discussions** : [GitHub Discussions](repository-url/discussions)
+- 🐛 **Issues** : [GitHub Issues](repository-url/issues) **COMING SOON**
+- 📧 **Email** :  **COMING SOON**
+- 📖 **Documentation** : [Wiki](repository-url/wiki) **COMING SOON**
+- 💬 **Discussions** : [GitHub Discussions](repository-url/discussions) **COMING SOON**
 
 ## 🔒 Licence et droits d'auteur
 
@@ -391,7 +391,7 @@ Ce logiciel est distribué sous la licence GNU GPL v3.0.
 - ⛔ **INTERDICTION** : Utilisation dans des logiciels propriétaires fermés
 
 ### Copyright
-- ~~Copyright (C) 2024 PriceChecker Project~~
+- ~~Copyright © 2024 PriceChecker Project~~
 - Ce programme est un logiciel libre : vous pouvez le redistribuer et/ou le modifier selon les termes de la Licence Publique Générale GNU telle que publiée par la Free Software Foundation, soit la version 3 de la Licence, ou (à votre option) toute version ultérieure.
 - Ce programme est distribué dans l'espoir qu'il sera utile, mais SANS AUCUNE GARANTIE ; sans même la garantie implicite de COMMERCIALISATION ou d'ADÉQUATION À UN USAGE PARTICULIER. Voir la Licence Publique Générale GNU pour plus de détails.
 
