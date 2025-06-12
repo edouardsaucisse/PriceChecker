@@ -2,7 +2,7 @@
 
 **Application web de surveillance automatique des prix en ligne**
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8%2B-green.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 
