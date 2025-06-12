@@ -3,103 +3,129 @@
 {% block title %}Produits surveillés - PriceChecker{% endblock %}
 
 {% block content %}
+
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index')  }}" class="btn btn-sm" title="Retour à l'accueil"><i class="fas fa-home"></i></a></li>
+        <li class="breadcrumb-item active" aria-current="page">Produits surveillés</li>
+    </ol>
+</nav>
 <div class="row">
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>📦 Produits surveillés</h1>
+            <h2><i class="fa-solid fa-box"></i> Produits surveillés</h2>
             <div class="d-flex gap-2">
-                <form method="POST" action="{{ url_for('main.scrape_all_products') }}" class="d-inline">
-                    <button type="submit" class="btn btn-outline-success"
-                            onclick="return confirm('Mettre à jour les prix de tous les produits ? Cela peut prendre du temps.') && (this.disabled=true, this.innerHTML='<i class=\'bi bi-hourglass-split\'></i> Scraping...', true);">
-                        <i class="bi bi-arrow-clockwise"></i> Mettre à jour tous les prix
+                <div id="scrapContainer" class="d-inline-block">
+                    <button type="button" class="btn btn-action-scrap btn-sm" id="scrapAllBtn">
+                        Mettre à jour tous les prix <i class="fa-solid fa-arrows-rotate" id="scrapIcon"></i>
                     </button>
-                </form>
-
-                <a href="{{ url_for('main.add_product') }}" class="btn btn-primary">
-                    <i class="bi bi-plus"></i> Ajouter un produit
+                    <div id="scrapProgress" class="mt-2" style="display: none;">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                                 role="progressbar" style="width: 100%">
+                                <i class="fa-solid fa-arrows-spin"></i> Scraping en cours...
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fa-solid fa-clock"></i> Cela peut prendre quelques minutes
+                        </small>
+                    </div>
+                </div>
+                <a href="{{ url_for('main.add_product') }}" class="btn btn-action-view btn-sm">
+                    Ajouter un produit <i class="fa-solid fa-square-plus"></i>
                 </a>
             </div>
         </div>
-
         {% if products %}
-        <div class="row">
-            {% for product in products %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 clickable-product-card" data-href="{{ url_for('main.product_detail', product_id=product.id) }}">
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">{{ product.name }}</h5>
-                        <p class="card-text flex-grow-1">
-                            {{ product.description or 'Aucune description disponible' }}
-                        </p>
-                        <div class="mt-auto">
-                            <small class="text-muted d-block mb-2">
-                                📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
-                            </small>
-                            <div class="d-flex gap-2 justify-content-center action-buttons">
-                                <a href="{{ url_for('main.product_detail', product_id=product.id) }}"
-                                   class="btn btn-action-view btn-sm"
-                                   title="Voir les détails">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
-                                   class="btn btn-action-edit btn-sm"
-                                   title="Modifier le produit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{{ url_for('main.price_history', product_id=product.id) }}"
-                                   class="btn btn-action-chart btn-sm"
-                                   title="Historique des prix">
-                                    <i class="fas fa-chart-line"></i>
-                                </a>
-                                <button type="button"
+            <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Produit</th>
+                        <th>Meilleur prix actuel</th>
+                        <th>Nombre de boutiques</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                        <tr>
+                            <td class="td-vertical-middle">
+                                <span class="clean-link">
+                                    <a href="{{ url_for('main.product_detail', product_id=product.id) }}">
+
+                                        <strong>{{ product.name }}</strong>
+                                    </a>
+                                </span>
+                            </td>
+                            <td class="td-vertical-middle">
+                                {% if product.best_price %}
+                                    <div class="best-price">
+                                        <a href="{{ product.best_price.url }}"
+                                        target="_blank"
+                                        class="clean-bestprice">
+                                            <strong>🏆 {{ product.best_price.price }} {{ product.best_price.currency }}</strong>
+                                        </a>
+                                        <br>
+                                        <small><i>chez {{ product.best_price.shop_name }}</i></small>
+                                    </div>
+                                {% else %}
+                                    <div class="no-price">
+                                        {% if product.has_prices %}
+                                            ⚠️ Aucun prix disponible
+                                        {% else %}
+                                            Aucun lien configuré
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="td-vertical-middle">
+                                {% if product.available_shops > 0 %}
+                                    <small class="shop-count">
+                                         {{ product.available_shops }} boutique(s) disponible(s)
+                                    </small>
+                                {% else %}
+                                    <div class="no-shop">
+                                        Aucun lien configuré
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="td-vertical-middle">
+                                <div class="d-flex gap-2 justify-content-center action-buttons">
+                                    <a href="{{ url_for('main.product_detail', product_id=product.id) }}"
+                                        class="btn btn-action-view btn-sm"
+                                        title="Voir les détails">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
+                                        class="btn btn-action-edit btn-sm"
+                                        title="Modifier le produit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('main.products_single_scrape', product_id=product.id) }}" class="d-inline" title="Récupérer les prix">
+                                        <button type="submit" class="btn btn-action-scrap btn-sm btn-single-scrape"
+                                                data-product-id="{{ product.id }}"
+                                                onclick="handleSingleScrapeClick(this, event);">
+                                            <i class="fa-solid fa-arrows-rotate"></i>
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('main.price_history', product_id=product.id) }}"
+                                        class="btn btn-action-chart btn-sm"
+                                        title="Historique des prix">
+                                        <i class="fa-solid fa-chart-simple"></i>
+                                    </a>
+                                    <button type="button"
                                         class="btn btn-action-delete btn-sm"
                                         title="Supprimer le produit"
                                         onclick="confirmDeleteProduct('{{ product.id }}', '{{ product.name|e }}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Statistiques -->
-        <div class="mt-5">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <h5 class="card-title">📈 Statistiques</h5>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h3 class="text-primary">{{ products|length }}</h3>
-                                <small class="text-muted">Produits surveillés</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h3 class="text-success">--</h3>
-                                <small class="text-muted">Prix en baisse</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h3 class="text-warning">--</h3>
-                                <small class="text-muted">Alertes actives</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h3 class="text-info">--</h3>
-                                <small class="text-muted">Dernière vérification</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% else %}
         <!-- État vide -->
         <div class="text-center py-5">
@@ -110,14 +136,14 @@
             <p class="text-muted mb-4">
                 Commencez par ajouter votre premier produit à surveiller
             </p>
-            <a href="{{ url_for('main.add_product') }}" class="btn btn-primary btn-lg">
-                🎯 Ajouter mon premier produit
+            <a href="{{ url_for('main.add_product') }}" class="btn btn-action-view btn-sm">
+                Ajouter un produit <i class="fa-solid fa-square-plus"></i>
             </a>
         </div>
         {% endif %}
+        </div>
     </div>
 </div>
-
 <div class="modal fade" id="deleteProductModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -140,11 +166,11 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times"></i> Annuler
+                    Annuler
                 </button>
                 <form id="deleteProductForm" method="POST" style="display: inline;">
                     <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Supprimer définitivement
+                        Supprimer définitivement
                     </button>
                 </form>
             </div>
@@ -171,15 +197,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-</script>
-<script>
+
 function showPriceHistory(productId) {
     // Fonctionnalité à implémenter plus tard
     const modal = new bootstrap.Modal(document.getElementById('priceHistoryModal'));
     modal.show();
 }
-</script>
-<script>
+
 function confirmDeleteProduct(productId, productName) {
     // Mettre à jour le modal avec les infos du produit
     document.getElementById('productNameToDelete').textContent = productName;
@@ -189,6 +213,158 @@ function confirmDeleteProduct(productId, productName) {
     const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
     modal.show();
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const scrapBtn = document.getElementById('scrapAllBtn');
+    const progressDiv = document.getElementById('scrapProgress');
+    const scrapIcon = document.getElementById('scrapIcon');
+    const scrapContainer = document.getElementById('scrapContainer');
+
+    if (scrapBtn) {
+        scrapBtn.addEventListener('click', function() {
+            if (confirm('Mettre à jour les prix de tous les produits ? Cela peut prendre du temps.')) {
+                startGlobalScraping();
+            }
+        });
+    }
+
+    function startGlobalScraping() {
+        const button = scrapBtn;
+        const originalText = button.innerHTML;
+
+        // 🎯 ANIMER L'ICÔNE DU BOUTON PENDANT 0.5 seconde
+        scrapIcon.className = 'fa-solid fa-arrows-spin';
+
+        // 🎯 APRÈS 0.5 seconde : masquer bouton, afficher barre À GAUCHE
+        setTimeout(() => {
+            button.style.display = 'none';
+            progressDiv.style.display = 'block';
+            scrapContainer.classList.add('progress-mode');
+        }, 500);
+
+        // 🚀 Animation de la barre de progression
+        animateProgressBar();
+
+        fetch('/scrape-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            showSuccessAndReload();
+        })
+        .catch(error => {
+            console.error('Erreur AJAX:', error);
+            showSuccessAndReload();
+        });
+    }
+
+    function animateProgressBar() {
+        const progressBar = progressDiv.querySelector('.progress-bar');
+        let messages = [
+            '<i class="fa-solid fa-arrows-spin"></i> Initialisation...',
+            '<i class="fa-solid fa-arrows-spin"></i> Connexion aux boutiques...',
+            '<i class="fa-solid fa-arrows-spin"></i> Récupération des prix...',
+            '<i class="fa-solid fa-arrows-spin"></i> Traitement des données...',
+            '<i class="fa-solid fa-arrows-spin"></i> Finalisation...'
+        ];
+
+        let currentMessage = 0;
+        const messageInterval = setInterval(() => {
+            if (currentMessage < messages.length) {
+                progressBar.innerHTML = messages[currentMessage];
+                currentMessage++;
+            } else {
+                currentMessage = 0;
+            }
+        }, 2000);
+
+        progressDiv.messageInterval = messageInterval;
+    }
+
+    function showSuccessAndReload() {
+        if (progressDiv.messageInterval) {
+            clearInterval(progressDiv.messageInterval);
+        }
+
+        const progressBar = progressDiv.querySelector('.progress-bar');
+        progressBar.className = 'progress-bar bg-success';
+        progressBar.innerHTML = '<i class="fa-solid fa-check"></i> Scraping terminé !';
+
+        showNotification('✅ Tous les prix ont été mis à jour !', 'success');
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    }
+
+    function showNotification(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        toast.style.top = '20px';
+        toast.style.right = '20px';
+        toast.style.zIndex = '9999';
+        toast.style.maxWidth = '400px';
+        toast.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5000);
+    }
+
+    window.handleSingleScrapeClick = function(button, event) {
+        event.preventDefault();
+
+        const icon = button.querySelector('i');
+        const originalIcon = icon.className;
+        const form = button.closest('form');
+
+        // 🎯 CHANGER L'ICÔNE POUR L'ANIMATION
+        icon.className = 'fa-solid fa-arrows-spin';
+
+        // 🔒 DÉSACTIVER LE BOUTON
+        button.disabled = true;
+        button.style.opacity = '0.7';
+        button.style.cursor = 'not-allowed';
+
+        // 🚀 SOUMETTRE LE FORMULAIRE
+        form.submit();
+
+        // ⏰ TIMEOUT de sécurité (au cas où la redirection ne marche pas)
+        setTimeout(() => {
+            // Restaurer l'état original si on est toujours sur la page
+            icon.className = originalIcon;
+            button.disabled = false;
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+        }, 10000); // 10 secondes
+    };
+
+});
+
+// Fonction pour confirmer la suppression
+function confirmDelete(productId, productName) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le produit "${productName}" ?`)) {
+        window.location.href = `/products/${productId}/delete`;
+    }
+}
+
 </script>
 
 {% endblock %}

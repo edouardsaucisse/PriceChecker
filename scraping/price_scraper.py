@@ -1,4 +1,22 @@
 """
+PriceChecker - Application de surveillance des prix en ligne
+Copyright (C) 2024 PriceChecker Project
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
+
+"""
 Module de scraping des prix pour PriceChecker
 """
 
@@ -137,7 +155,7 @@ class PriceScraper:
                 return {
                     **price_info,
                     'is_available': False,
-                    'error_message': 'Prix non trouvé avec Selenium'
+                    'error_message': 'Prix non trouvé'
                 }
 
         except (TimeoutException, WebDriverException) as e:
@@ -253,26 +271,20 @@ class PriceScraper:
         elif '¥' in price_text:
             currency = 'JPY'
 
-        # Extraire le nombre
+        # Extraire le nombre et le reformater
         price_match = re.search(r'(\d{1,4}(?:[,\s]\d{3})*(?:[.,]\d{2})?)', cleaned)
         if price_match:
             price_str = price_match.group(1)
 
-            # Normaliser le format (remplacer , par . pour les décimales)
             if ',' in price_str and '.' in price_str:
-                # Format 1,234.56
                 price_str = price_str.replace(',', '')
             elif ',' in price_str:
-                # Vérifier si c'est des milliers ou des décimales
                 parts = price_str.split(',')
                 if len(parts) == 2 and len(parts[1]) == 2:
-                    # Décimales (123,45)
                     price_str = price_str.replace(',', '.')
                 else:
-                    # Milliers (1,234)
                     price_str = price_str.replace(',', '')
 
-            # Supprimer les espaces
             price_str = price_str.replace(' ', '')
 
             try:

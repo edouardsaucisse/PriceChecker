@@ -1,4 +1,22 @@
 ﻿"""
+PriceChecker - Application de surveillance des prix en ligne
+Copyright (C) 2024 PriceChecker Project
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
+
+"""
 Modèles de base de données pour PriceChecker
 Gestion SQLite avec fonctions utilitaires
 """
@@ -6,7 +24,8 @@ Gestion SQLite avec fonctions utilitaires
 import sqlite3
 import logging
 import time
-import hashlib
+
+import utils.display_helpers
 
 from flask import current_app
 
@@ -88,6 +107,7 @@ def init_db():
     conn.close()
     print("✅ Base de données initialisée")
 
+"""PRODUCTS"""
 def create_product(name, description=None):
     """Créer un nouveau produit"""
     conn = get_db_connection()
@@ -157,6 +177,45 @@ def update_product(product_id, name, description=None):
         logger.error(f"Erreur lors de la mise à jour du produit {product_id}: {e}")
         raise
 
+def get_product_by_id(product_id):
+    """Récupérer un produit par son ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    row = cursor.execute(
+        'SELECT id, name, description, created_at, updated_at FROM products WHERE id = ?',
+        (product_id,)
+    ).fetchone()
+
+    conn.close()
+
+    return dict_from_row(row) if row else None
+
+def get_all_products():
+    """Récupérer tous les produits avec conversion en dictionnaire"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    rows = cursor.execute('''
+        SELECT id, name, description, created_at, updated_at 
+        FROM products 
+        ORDER BY created_at DESC
+    ''').fetchall()
+
+    conn.close()
+
+    # Convertir en liste de dictionnaires
+    products = []
+    for row in rows:
+        product_dict = dict_from_row(row)
+        # Traitement des dates pour les templates
+        if product_dict['created_at']:
+            # Les dates SQLite sont des chaînes, on les garde comme ça pour les templates
+            pass
+        products.append(product_dict)
+
+    return products
+
 def delete_product(product_id):
     """
     Supprimer un produit et toutes ses données associées (liens + prix)
@@ -225,6 +284,7 @@ def delete_product(product_id):
         logger.error(f"Erreur lors de la suppression du produit {product_id}: {e}")
         raise
 
+"""LINKS"""
 def add_product_link(product_id, shop_name, url, css_selector=None):
     """Ajouter un lien de boutique à un produit"""
     conn = get_db_connection()
@@ -305,84 +365,7 @@ def delete_product_link(link_id):
         logger.error(f"Erreur lors de la suppression du lien {link_id}: {e}")
         raise
 
-def get_all_products():
-    """Récupérer tous les produits avec conversion en dictionnaire"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    rows = cursor.execute('''
-        SELECT id, name, description, created_at, updated_at 
-        FROM products 
-        ORDER BY created_at DESC
-    ''').fetchall()
-
-    conn.close()
-
-    # Convertir en liste de dictionnaires
-    products = []
-    for row in rows:
-        product_dict = dict_from_row(row)
-        # Traitement des dates pour les templates
-        if product_dict['created_at']:
-            # Les dates SQLite sont des chaînes, on les garde comme ça pour les templates
-            pass
-        products.append(product_dict)
-
-    return products
-
-def get_product_by_id(product_id):
-    """Récupérer un produit par son ID"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    row = cursor.execute(
-        'SELECT id, name, description, created_at, updated_at FROM products WHERE id = ?',
-        (product_id,)
-    ).fetchone()
-
-    conn.close()
-
-    return dict_from_row(row) if row else None
-
-def record_price(product_link_id, price, currency='EUR', is_available=True, error_message=None):
-    """
-    Enregistrer un prix pour un lien de produit
-
-    Args:
-        product_link_id (int): ID du lien de produit
-        price (float): Prix à enregistrer
-        currency (str): Devise du prix (par défaut 'EUR')
-        is_available (bool): Disponibilité du produit (par défaut True)
-        error_message (str, optional): Message d'erreur en cas d'indisponibilité
-
-    Returns:
-        int: ID du nouvel enregistrement de prix
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute(
-            '''
-            INSERT INTO price_history
-            (product_link_id, price, currency, is_available, error_message, scraped_at)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ''',
-            (product_link_id, price, currency, is_available, error_message)
-        )
-
-        price_history_id = cursor.lastrowid
-        conn.commit()
-        logger.info(f"Prix enregistré avec succès pour le lien {product_link_id}")
-        return price_history_id
-
-    except Exception as e:
-        logger.error(f"Erreur lors de l'enregistrement du prix pour le lien {product_link_id}: {e}")
-        raise
-
-    finally:
-        conn.close()
-
+"""SCRAPING"""
 def scrape_all_product_links(product_id):
     """Scraper tous les liens d'un produit"""
     from scraping.price_scraper import create_price_scraper
@@ -437,44 +420,45 @@ def scrape_all_product_links(product_id):
 
     return results
 
-def get_scraping_stats(product_id):
+"""PRICES"""
+def record_price(product_link_id, price, currency='EUR', is_available=True, error_message=None):
     """
-    Statistiques de scraping pour un produit
+    Enregistrer un prix pour un lien de produit
+
+    Args:
+        product_link_id (int): ID du lien de produit
+        price (float): Prix à enregistrer
+        currency (str): Devise du prix (par défaut 'EUR')
+        is_available (bool): Disponibilité du produit (par défaut True)
+        error_message (str, optional): Message d'erreur en cas d'indisponibilité
 
     Returns:
-        dict: Stats du scraping
+        int: ID du nouvel enregistrement de prix
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    stats = cursor.execute('''
-                           SELECT COUNT(*)                                                as total_scrapes,
-                                  COUNT(CASE WHEN p.is_available = 1 THEN 1 END)          as successful_scrapes,
-                                  COUNT(CASE WHEN p.error_message IS NOT NULL THEN 1 END) as errors,
-                                  MAX(p.scraped_at)                                       as last_scrape
-                           FROM prices p
-                                    JOIN product_links pl ON p.link_id = pl.id
-                           WHERE pl.product_id = ?
-                           ''', (product_id,)).fetchone()
+    try:
+        cursor.execute(
+            '''
+            INSERT INTO price_history
+            (product_link_id, price, currency, is_available, error_message, scraped_at)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''',
+            (product_link_id, price, currency, is_available, error_message)
+        )
 
-    conn.close()
+        price_history_id = cursor.lastrowid
+        conn.commit()
+        logger.info(f"Prix enregistré avec succès pour le lien {product_link_id}")
+        return price_history_id
 
-    if stats:
-        return {
-            'total_scrapes': stats['total_scrapes'] or 0,
-            'successful_scrapes': stats['successful_scrapes'] or 0,
-            'errors': stats['errors'] or 0,
-            'last_scrape': stats['last_scrape'],
-            'success_rate': round((stats['successful_scrapes'] / max(stats['total_scrapes'], 1)) * 100, 1)
-        }
+    except Exception as e:
+        logger.error(f"Erreur lors de l'enregistrement du prix pour le lien {product_link_id}: {e}")
+        raise
 
-    return {
-        'total_scrapes': 0,
-        'successful_scrapes': 0,
-        'errors': 0,
-        'last_scrape': None,
-        'success_rate': 0
-    }
+    finally:
+        conn.close()
 
 def get_latest_prices(product_id):
     """Récupérer les derniers prix pour un produit - Version simplifiée"""
@@ -503,7 +487,7 @@ def get_latest_prices(product_id):
         price_data = {
             'link_id': link['id'],
             'shop_name': link['shop_name'],
-            'url': link['url'],
+            'url': link['url'],              # ✅ URL présente ici
             'css_selector': link['css_selector'],
             'price': None,
             'currency': 'EUR',
@@ -524,16 +508,28 @@ def get_latest_prices(product_id):
         prices.append(price_data)
 
     conn.close()
-    return prices
+    # Filtrer les prix disponibles
+    available_prices = [price for price in prices if price['is_available'] and price['price'] is not None]
+
+    # Trouver le meilleur prix
+    best_price = None
+    if available_prices:
+        best_price = min(available_prices, key=lambda x: x['price'])
+        # ✅ best_price contient maintenant AUSSI l'URL !
+
+    return {
+        'prices': prices,
+        'best_price': best_price
+    }
 
     # Convertir en liste de dictionnaires avec debug
-    prices = []
-    for row in rows:
-        price_dict = dict_from_row(row)
-        logger.debug(f"Prix récupéré pour {price_dict['shop_name']}: {price_dict.get('price', 'Aucun')}")
-        prices.append(price_dict)
+    #prices = []
+    #for row in rows:
+    #    price_dict = dict_from_row(row)
+    #    logger.debug(f"Prix récupéré pour {price_dict['shop_name']}: {price_dict.get('price', 'Aucun')}")
+    #    prices.append(price_dict)
 
-    return prices
+    #return prices
 
 def get_price_history(product_id, limit=50):
     """
@@ -565,76 +561,76 @@ def get_price_history(product_id, limit=50):
 def get_price_history_data(product_id, days=30):
     """
     Récupérer les données d'historique pour les graphiques
-    
+
     Args:
         product_id (int): ID du produit
         days (int): Nombre de jours d'historique (par défaut 30)
-        
+
     Returns:
         dict: Données formatées pour Chart.js
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # Récupérer l'historique par boutique
     rows = cursor.execute('''
-        SELECT 
-            pl.shop_name,
-            ph.price,
-            ph.currency,
-            ph.is_available,
-            ph.scraped_at,
-            DATE(ph.scraped_at) as scrape_date
-        FROM price_history ph
-        JOIN product_links pl ON ph.product_link_id = pl.id
-        WHERE pl.product_id = ? 
-        AND ph.scraped_at >= datetime('now', '-' || ? || ' days')
-        AND ph.price IS NOT NULL
-        ORDER BY ph.scraped_at ASC
-    ''', (product_id, days)).fetchall()
-    
+                          SELECT pl.shop_name,
+                                 ph.price,
+                                 ph.currency,
+                                 ph.is_available,
+                                 ph.scraped_at, DATE (ph.scraped_at) as scrape_date
+                          FROM price_history ph
+                              JOIN product_links pl
+                          ON ph.product_link_id = pl.id
+                          WHERE pl.product_id = ?
+                            AND ph.scraped_at >= datetime('now'
+                              , '-' || ? || ' days')
+                            AND ph.price IS NOT NULL
+                          ORDER BY ph.scraped_at ASC
+                          ''', (product_id, days)).fetchall()
+
     conn.close()
-    
+
     if not rows:
         return {
             'labels': [],
             'datasets': [],
             'stats': {}
         }
-    
+
     # Organiser les données par boutique
     shops_data = {}
     all_dates = set()
-    
+
     for row in rows:
         shop = row['shop_name']
         date = row['scrape_date']
         price = float(row['price'])
-        
+
         if shop not in shops_data:
             shops_data[shop] = {}
-        
+
         # Garder le dernier prix du jour
         shops_data[shop][date] = price
         all_dates.add(date)
-    
+
     # Créer les labels (dates triées)
     sorted_dates = sorted(all_dates)
-    
+
     # Couleurs pour les boutiques
     colors = [
-        'rgb(255, 99, 132)',   # Rouge
-        'rgb(54, 162, 235)',   # Bleu
-        'rgb(255, 205, 86)',   # Jaune
-        'rgb(75, 192, 192)',   # Vert
+        'rgb(255, 99, 132)',  # Rouge
+        'rgb(54, 162, 235)',  # Bleu
+        'rgb(255, 205, 86)',  # Jaune
+        'rgb(75, 192, 192)',  # Vert
         'rgb(153, 102, 255)',  # Violet
-        'rgb(255, 159, 64)',   # Orange
+        'rgb(255, 159, 64)',  # Orange
     ]
-    
+
     # Créer les datasets pour Chart.js
     datasets = []
     color_index = 0
-    
+
     for shop, price_data in shops_data.items():
         # Créer la série de données pour cette boutique
         data_points = []
@@ -644,7 +640,7 @@ def get_price_history_data(product_id, days=30):
             else:
                 # Si pas de prix ce jour, garder le dernier prix connu
                 data_points.append(data_points[-1] if data_points else None)
-        
+
         datasets.append({
             'label': shop,
             'data': data_points,
@@ -654,7 +650,7 @@ def get_price_history_data(product_id, days=30):
             'fill': False
         })
         color_index += 1
-    
+
     # Calculer les statistiques
     all_prices = [float(row['price']) for row in rows]
     stats = {
@@ -665,7 +661,7 @@ def get_price_history_data(product_id, days=30):
         'shops_count': len(shops_data),
         'date_range': f"{sorted_dates[0]} à {sorted_dates[-1]}" if sorted_dates else "Aucune donnée"
     }
-    
+
     return {
         'labels': sorted_dates,
         'datasets': datasets,
@@ -736,109 +732,59 @@ def get_price_history_table(product_id, page=1, per_page=50, shop_filter=None):
         }
     }
 
-def get_price_statistics(product_id):
-    """
-    Statistiques avancées des prix pour un produit
-    
-    Returns:
-        dict: Statistiques détaillées
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Stats globales
-    global_stats = cursor.execute('''
-        SELECT 
-            COUNT(*) as total_records,
-            COUNT(DISTINCT pl.shop_name) as shops_count,
-            MIN(ph.price) as min_price,
-            MAX(ph.price) as max_price,
-            AVG(ph.price) as avg_price,
-            MIN(ph.scraped_at) as first_scrape,
-            MAX(ph.scraped_at) as last_scrape
-        FROM price_history ph
-        JOIN product_links pl ON ph.product_link_id = pl.id
-        WHERE pl.product_id = ? AND ph.price IS NOT NULL
-    ''', (product_id,)).fetchone()
-    
-    # Stats par boutique
-    shop_stats = cursor.execute('''
-        SELECT 
-            pl.shop_name,
-            COUNT(*) as records_count,
-            MIN(ph.price) as min_price,
-            MAX(ph.price) as max_price,
-            AVG(ph.price) as avg_price,
-            MAX(ph.scraped_at) as last_scrape
-        FROM price_history ph
-        JOIN product_links pl ON ph.product_link_id = pl.id
-        WHERE pl.product_id = ? AND ph.price IS NOT NULL
-        GROUP BY pl.shop_name
-        ORDER BY avg_price ASC
-    ''', (product_id,)).fetchall()
-    
-    conn.close()
-    
-    return {
-        'global': dict_from_row(global_stats) if global_stats else {},
-        'by_shop': [dict_from_row(row) for row in shop_stats]
-    }
-
 def get_price_alerts_data(product_id):
     """
     Données pour les alertes de prix
-    
+
     Returns:
         dict: Données d'alerte
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # Prix actuel vs historique
     current_prices = cursor.execute('''
-        SELECT 
-            pl.shop_name,
-            ph.price,
-            ph.scraped_at
-        FROM price_history ph
-        JOIN product_links pl ON ph.product_link_id = pl.id
-        WHERE pl.product_id = ? 
-        AND ph.price IS NOT NULL
-        AND ph.id IN (
-            SELECT MAX(ph2.id)
-            FROM price_history ph2
-            JOIN product_links pl2 ON ph2.product_link_id = pl2.id
-            WHERE pl2.product_id = ? AND ph2.price IS NOT NULL
-            GROUP BY pl2.shop_name
-        )
-    ''', (product_id, product_id)).fetchall()
-    
+                                    SELECT pl.shop_name,
+                                           ph.price,
+                                           ph.scraped_at
+                                    FROM price_history ph
+                                             JOIN product_links pl ON ph.product_link_id = pl.id
+                                    WHERE pl.product_id = ?
+                                      AND ph.price IS NOT NULL
+                                      AND ph.id IN (SELECT MAX(ph2.id)
+                                                    FROM price_history ph2
+                                                             JOIN product_links pl2 ON ph2.product_link_id = pl2.id
+                                                    WHERE pl2.product_id = ?
+                                                      AND ph2.price IS NOT NULL
+                                                    GROUP BY pl2.shop_name)
+                                    ''', (product_id, product_id)).fetchall()
+
     # Prix minimums historiques
     historical_mins = cursor.execute('''
-        SELECT 
-            pl.shop_name,
-            MIN(ph.price) as min_price,
-            ph.scraped_at as min_price_date
-        FROM price_history ph
-        JOIN product_links pl ON ph.product_link_id = pl.id
-        WHERE pl.product_id = ? AND ph.price IS NOT NULL
-        GROUP BY pl.shop_name
-    ''', (product_id,)).fetchall()
-    
+                                     SELECT pl.shop_name,
+                                            MIN(ph.price) as min_price,
+                                            ph.scraped_at as min_price_date
+                                     FROM price_history ph
+                                              JOIN product_links pl ON ph.product_link_id = pl.id
+                                     WHERE pl.product_id = ?
+                                       AND ph.price IS NOT NULL
+                                     GROUP BY pl.shop_name
+                                     ''', (product_id,)).fetchall()
+
     conn.close()
-    
+
     alerts = []
     current_dict = {row['shop_name']: row for row in current_prices}
     min_dict = {row['shop_name']: row for row in historical_mins}
-    
+
     for shop in current_dict:
         current = current_dict[shop]
         historical_min = min_dict.get(shop)
-        
+
         if historical_min:
             price_diff = current['price'] - historical_min['min_price']
             percentage_diff = (price_diff / historical_min['min_price']) * 100
-            
+
             alert_data = {
                 'shop_name': shop,
                 'current_price': current['price'],
@@ -849,49 +795,206 @@ def get_price_alerts_data(product_id):
                 'alert_type': 'best_price' if abs(percentage_diff) < 1 else 'normal'
             }
             alerts.append(alert_data)
-    
+
     return alerts
 
-def _get_shop_color(shop_name, alpha=1.0):
-    """Couleurs dynamiques basées sur le hash du nom"""
-    # Couleurs prédéfinies pour les principales boutiques
-    predefined_colors = {
-        'Amazon': f'rgba(255, 153, 0, {alpha})',  # Orange Amazon
-        'Apple Store': f'rgba(0, 122, 255, {alpha})',  # Bleu Apple
-        'Fnac': f'rgba(255, 0, 81, {alpha})',  # Rouge Fnac
-        'Cdiscount': f'rgba(0, 204, 153, {alpha})',  # Vert Cdiscount
-        'Leclerc': f'rgba(102, 51, 153, {alpha})',  # Violet Leclerc
+"""STATS"""
+def get_global_stats():
+    """Récupérer les statistiques globales de l'application"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Nombre d'articles suivis
+        products_count = cursor.execute('SELECT COUNT(*) FROM products').fetchone()[0]
+
+        # Nombre de liens suivis
+        links_count = cursor.execute('SELECT COUNT(*) FROM product_links').fetchone()[0]
+
+        # Nombre total de scraping
+        total_scrapes = cursor.execute('SELECT COUNT(*) FROM price_history').fetchone()[0]
+
+        # Nombre de scraping réussis
+        successful_scrapes = cursor.execute('''
+                                            SELECT COUNT(*)
+                                            FROM price_history
+                                            WHERE is_available = 1
+                                              AND price IS NOT NULL
+                                            ''').fetchone()[0]
+
+        # Nombre de scraping échoués
+        failed_scrapes = cursor.execute('''
+                                        SELECT COUNT(*)
+                                        FROM price_history
+                                        WHERE scraped_at IS NOT NULL
+                                          AND (is_available = 0 OR price IS NULL)
+                                        ''').fetchone()[0]
+
+        # Nombre de boutiques différentes
+        unique_shops = cursor.execute('''
+                                      SELECT COUNT(DISTINCT shop_name)
+                                      FROM product_links
+                                      ''').fetchone()[0]
+
+        # Nombre de boutiques sans aucun scraping réussi
+        shops_without_success = cursor.execute('''
+                                               SELECT COUNT(DISTINCT pl.shop_name)
+                                               FROM product_links pl
+                                                        LEFT JOIN price_history ph ON pl.id = ph.product_link_id
+                                                   AND ph.is_available = 1 AND ph.price IS NOT NULL
+                                               WHERE ph.id IS NULL
+                                               ''').fetchone()[0]
+
+        conn.close()
+
+        return {
+            'products_count': products_count,
+            'links_count': links_count,
+            'total_scrapes': total_scrapes,
+            'successful_scrapes': successful_scrapes,
+            'failed_scrapes': failed_scrapes,
+            'unique_shops': unique_shops,
+            'shops_without_success': shops_without_success,
+            'success_rate': round((successful_scrapes / total_scrapes * 100) if total_scrapes > 0 else 0, 1)
+        }
+
+    except Exception as e:
+        logger.error(f"Erreur récupération statistiques globales: {e}")
+        return {
+            'products_count': 0,
+            'links_count': 0,
+            'total_scrapes': 0,
+            'successful_scrapes': 0,
+            'failed_scrapes': 0,
+            'unique_shops': 0,
+            'shops_without_success': 0,
+            'success_rate': 0
+        }
+
+def get_scraping_stats(product_id):
+    """Statistiques de scraping pour un produit"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    stats = cursor.execute('''
+                           SELECT COUNT(*)                                                as total_scrapes,
+                                  COUNT(CASE WHEN ph.is_available = 1 THEN 1 END)        as successful_scrapes,
+                                  COUNT(CASE WHEN ph.error_message IS NOT NULL THEN 1 END) as errors,
+                                  MAX(ph.scraped_at)                                      as last_scrape
+                           FROM price_history ph
+                                    JOIN product_links pl ON ph.product_link_id = pl.id
+                           WHERE pl.product_id = ?
+                           ''', (product_id,)).fetchone()
+
+    conn.close()
+
+    if stats:
+        return {
+            'total_scrapes': stats['total_scrapes'] or 0,
+            'successful_scrapes': stats['successful_scrapes'] or 0,
+            'errors': stats['errors'] or 0,
+            'last_scrape': stats['last_scrape'],
+            'success_rate': round((stats['successful_scrapes'] / max(stats['total_scrapes'], 1)) * 100, 1)
+        }
+
+    return {
+        'total_scrapes': 0,
+        'successful_scrapes': 0,
+        'errors': 0,
+        'last_scrape': None,
+        'success_rate': 0
     }
 
-    # Si boutique connue, utiliser la couleur prédéfinie
-    if shop_name in predefined_colors:
-        return predefined_colors[shop_name]
+def get_price_statistics(product_id, days=30):
+    """
+    Statistiques détaillées des prix
 
-    # Sinon, générer une couleur basée sur le nom
-    hash_object = hashlib.md5(shop_name.encode())
-    hex_dig = hash_object.hexdigest()
+    Returns:
+        dict: Statistiques complètes
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    # Extraire RGB du hash
-    r = int(hex_dig[0:2], 16)
-    g = int(hex_dig[2:4], 16)
-    b = int(hex_dig[4:6], 16)
+    stats = cursor.execute('''
+                           SELECT MIN(ph.price)                as min_price,
+                                  MAX(ph.price)                as max_price,
+                                  AVG(ph.price)                as avg_price,
+                                  COUNT(ph.id)                 as total_scrapes,
+                                  COUNT(DISTINCT pl.shop_name) as shops_count,
+                                  MIN(ph.scraped_at)           as first_scrape,
+                                  MAX(ph.scraped_at)           as last_scrape
+                           FROM price_history ph
+                                    JOIN product_links pl ON ph.product_link_id = pl.id
+                           WHERE pl.product_id = ?
+                             AND ph.price IS NOT NULL
+                             AND ph.scraped_at >= datetime('now', '-' || ? || ' days')
+                           ''', (product_id, days)).fetchone()
 
-    return f'rgba({r}, {g}, {b}, {alpha})'
+    # Meilleur prix actuel
+    best_current = cursor.execute('''
+                                  SELECT ph.price, pl.shop_name, ph.scraped_at
+                                  FROM price_history ph
+                                           JOIN product_links pl ON ph.product_link_id = pl.id
+                                  WHERE pl.product_id = ?
+                                    AND ph.price IS NOT NULL
+                                    AND ph.is_available = 1
+                                  ORDER BY ph.scraped_at DESC, ph.price ASC LIMIT 1
+                                  ''', (product_id,)).fetchone()
+
+    # Stats par boutique
+    shop_stats = cursor.execute('''
+                                SELECT pl.shop_name,
+                                       COUNT(*)           as records_count,
+                                       MIN(ph.price)      as min_price,
+                                       MAX(ph.price)      as max_price,
+                                       AVG(ph.price)      as avg_price,
+                                       MAX(ph.scraped_at) as last_scrape
+                                FROM price_history ph
+                                         JOIN product_links pl ON ph.product_link_id = pl.id
+                                WHERE pl.product_id = ?
+                                  AND ph.price IS NOT NULL
+                                GROUP BY pl.shop_name
+                                ORDER BY avg_price ASC
+                                ''', (product_id,)).fetchall()
+    conn.close()
+
+    if not stats or stats['total_scrapes'] == 0:
+        return None
+
+    return {
+        'min_price': round(stats['min_price'], 2) if stats['min_price'] else 0,
+        'max_price': round(stats['max_price'], 2) if stats['max_price'] else 0,
+        'avg_price': round(stats['avg_price'], 2) if stats['avg_price'] else 0,
+
+        'total_scrapes': stats['total_scrapes'],
+        'shops_count': stats['shops_count'],
+        'first_scrape': stats['first_scrape'],
+        'last_scrape': stats['last_scrape'],
+
+        'best_current': {
+            'price': round(best_current['price'], 2) if best_current else 0,
+            'shop': best_current['shop_name'] if best_current else 'Aucun',
+            'date': best_current['scraped_at'] if best_current else None
+        } if best_current else None,
+
+        'by_shop': [dict_from_row(row) for row in shop_stats],
+        'global': dict_from_row(stats) if stats else {}  # doublon, mais format de données brutes utilisé dans l'API
+    }
 
 def get_price_history_for_chart(product_id, days=30):
     """
     Données d'historique optimisées pour graphiques Chart.js
-    
+
     Args:
         product_id (int): ID du produit
         days (int): Nombre de jours d'historique (7, 30, 90)
-    
+
     Returns:
         dict: Données formatées pour Chart.js
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     rows = cursor.execute('''
         SELECT 
             ph.scraped_at,
@@ -906,9 +1009,9 @@ def get_price_history_for_chart(product_id, days=30):
         AND ph.price IS NOT NULL
         ORDER BY ph.scraped_at ASC
     '''.format(days), (product_id,)).fetchall()
-    
+
     conn.close()
-    
+
     # Organiser par boutique
     shops_data = {}
     for row in rows:
@@ -917,75 +1020,21 @@ def get_price_history_for_chart(product_id, days=30):
             shops_data[shop] = {
                 'label': shop,
                 'data': [],
-                'borderColor': _get_shop_color(shop),
-                'backgroundColor': _get_shop_color(shop, alpha=0.1),
+                'borderColor': utils.display_helpers._get_shop_color(shop),
+                'backgroundColor': utils.display_helpers._get_shop_color(shop, alpha=0.1),
                 'tension': 0.1
             }
-        
+
         shops_data[shop]['data'].append({
             'x': row['scraped_at'][:16],  # Format YYYY-MM-DD HH:MM
             'y': float(row['price'])
         })
-    
+
     return {
         'datasets': list(shops_data.values()),
         'currency': rows[0]['currency'] if rows else 'EUR'
     }
 
-def get_price_statistics(product_id, days=30):
-    """
-    Statistiques détaillées des prix
-    
-    Returns:
-        dict: Statistiques complètes
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    stats = cursor.execute('''
-        SELECT 
-            MIN(ph.price) as min_price,
-            MAX(ph.price) as max_price,
-            AVG(ph.price) as avg_price,
-            COUNT(ph.id) as total_scrapes,
-            COUNT(DISTINCT pl.shop_name) as shops_count,
-            MIN(ph.scraped_at) as first_scrape,
-            MAX(ph.scraped_at) as last_scrape
-        FROM price_history ph
-        JOIN product_links pl ON ph.product_link_id = pl.id
-        WHERE pl.product_id = ? 
-        AND ph.scraped_at >= datetime('now', '-{} days')
-        AND ph.price IS NOT NULL
-    '''.format(days), (product_id,)).fetchone()
-    
-    # Meilleur prix actuel
-    best_current = cursor.execute('''
-        SELECT ph.price, pl.shop_name, ph.scraped_at
-        FROM price_history ph
-        JOIN product_links pl ON ph.product_link_id = pl.id
-        WHERE pl.product_id = ? 
-        AND ph.price IS NOT NULL
-        AND ph.is_available = 1
-        ORDER BY ph.scraped_at DESC, ph.price ASC
-        LIMIT 1
-    ''', (product_id,)).fetchone()
-    
-    conn.close()
-    
-    if not stats or stats['total_scrapes'] == 0:
-        return None
-    
-    return {
-        'min_price': round(stats['min_price'], 2) if stats['min_price'] else 0,
-        'max_price': round(stats['max_price'], 2) if stats['max_price'] else 0,
-        'avg_price': round(stats['avg_price'], 2) if stats['avg_price'] else 0,
-        'total_scrapes': stats['total_scrapes'],
-        'shops_count': stats['shops_count'],
-        'first_scrape': stats['first_scrape'],
-        'last_scrape': stats['last_scrape'],
-        'best_current': {
-            'price': round(best_current['price'], 2) if best_current else 0,
-            'shop': best_current['shop_name'] if best_current else 'Aucun',
-            'date': best_current['scraped_at'] if best_current else None
-        } if best_current else None
-    }
+"""MISCELLANEOUS"""
+
+

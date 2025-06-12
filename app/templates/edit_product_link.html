@@ -1,23 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}Ajouter un lien - {{ product.name }} - PriceChecker{% endblock %}
+{% block title %}Modifier le lien - {{ link.shop_name }} - PriceChecker{% endblock %}
 
 {% block content %}
-
 <nav aria-label="breadcrumb" class="mb-4">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="btn btn-sm" title="Retour à l'accueil"><i class="fas fa-home"></i></a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}" class="btn btn-sm" title="Retour aux produits"><i class="fas fa-box-open"></i></a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="btn btn-sm">{{ product.name }}</a></li>
-        <li class="breadcrumb-item active" aria-current="page" class="btn btn-sm">Ajouter un lien - {{ product.name }}</li>
+        <li class="breadcrumb-item active" aria-current="page" class="btn btn-sm">Modifier le lien - {{ link.shop_name }}</li>
     </ol>
 </nav>
-
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fa-solid fa-square-plus"></i> Ajouter un lien de boutique - {{ product.name }}</h5>
+                <h4 class="mb-0">
+                    <i class="fas fa-edit"></i> Modifier le lien - {{ link.shop_name }}
+                </h4>
+                <small class="text-muted">Produit: {{ product.name }}</small>
             </div>
             <div class="card-body">
                 <form method="POST" novalidate>
@@ -29,8 +30,7 @@
                                class="form-control" 
                                id="shop_name" 
                                name="shop_name" 
-                               value="{{ shop_name or '' }}"
-                               placeholder="Ex: Amazon, Fnac, Cdiscount..."
+                               value="{{ form_data.shop_name if form_data else link.shop_name }}"
                                required>
                         <div class="form-text">
                             Ex: Amazon, Fnac, Cdiscount...
@@ -45,13 +45,14 @@
                                class="form-control" 
                                id="url" 
                                name="url" 
-                               value="{{ url or '' }}"
-                               placeholder="https://www.exemple.com/produit..."
+                               value="{{ form_data.url if form_data else link.url }}"
                                required>
-                        <div class="form-text">L'adresse complète de la page produit sur le site</div>
+                        <div class="form-text">
+                            L'adresse complète de la page produit sur le site
+                        </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <label for="css_selector" class="form-label">
                             <i class="fas fa-code"></i> Sélecteur CSS
                         </label>
@@ -59,7 +60,7 @@
                                class="form-control" 
                                id="css_selector" 
                                name="css_selector" 
-                               value="{{ css_selector or '' }}"
+                               value="{{ form_data.css_selector if form_data else (link.css_selector or '') }}"
                                placeholder="Ex: .price, .product-price, #price-value...">
                         <div class="form-text">
                             Sélecteur CSS pour localiser le prix sur la page (laissez vide pour auto-détection)
@@ -132,6 +133,13 @@
                     </div>
                 </div>
             </div>
+        </div>
+                    <!-- Info supplémentaire -->
+        <div class="mt-3">
+            <small class="text-muted">
+                📅 Lien créé le : {{ link.created_at }}<br>
+                🔄 Dernière modification : {{ link.updated_at or 'Jamais modifié' }}
+            </small>
         </div>
     </div>
 </div>
