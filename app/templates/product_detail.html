@@ -10,11 +10,14 @@
         <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
     </ol>
 </nav>
+
+{% set links = get_product_links(product.id) %}
+
 <div class="row">
     <div class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h1>{{ product.name }}</h1>
+        <h2>{{ product.name }}</h2>
         <small class="text-muted">
             📅 Ajouté le {{ product.created_at.split(' ')[0] if product.created_at else 'Date inconnue' }}
         </small>
@@ -25,14 +28,20 @@
             title="Retour aux produits">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
-
-        <form method="POST" action="{{ url_for('main.quick_scrape_product', product_id=product.id) }}" class="d-inline">
+        <a href="{{ url_for('main.add_product_link_route', product_id=product.id) }}"
+            class="btn btn-action-addlink btn-sm"
+            title="Ajouter un lien">
+            <i class="fa-solid fa-square-plus"></i>
+        </a>
+        {% if links %}
+        <form method="POST" action="{{ url_for('main.quick_scrape_product', product_id=product.id) }}" class="d-inline" title="Récupérer les prix">
+            <input type="hidden" name="redirect_to" value="products">
             <button type="submit" class="btn btn-action-scrap btn-sm"
-                onclick="this.disabled=true; this.innerHTML='<i class=\'fa-solid fa-arrows-spin\'></i> Scraping...'; this.form.submit();">
-                <i class="fa-solid fa-arrows-spin"></i>
+                    onclick="handleProductDetailScrapeClick(this, event);">
+                <i class="fa-solid fa-arrows-rotate"></i>
             </button>
         </form>
-
+        {% endif %}
         <a href="{{ url_for('main.edit_product', product_id=product.id) }}"
             class="btn btn-action-edit btn-sm"
             title="Modifier le produit">
@@ -41,7 +50,7 @@
         <a href="{{ url_for('main.price_history', product_id=product.id) }}"
             class="btn btn-action-chart btn-sm"
             title="Historique des prix">
-            <i class="fas fa-chart-line"></i>
+            <i class="fa-solid fa-chart-simple"></i>
         </a>
         <button type="button"
             class="btn btn-action-delete btn-sm"
@@ -58,19 +67,9 @@
             </div>
         </div>
 
-        <!-- Liens de boutiques -->
+
         <div class="row mb-4">
             <div class="col-md-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3>🔗 Liens de boutiques</h3>
-                    <div class="d-flex gap-2 justify-content-center action-buttons">
-                        <a href="{{ url_for('main.add_product_link_route', product_id=product.id) }}"
-                        class="btn btn-action-view btn-sm">
-                        Ajouter un lien <i class="fa-solid fa-square-plus"></i>
-                        </a>
-                    </div>
-                </div>
-                {% set links = get_product_links(product.id) %}
                 {% if links %}
                     <div class="table-responsive">
                         <table class="table table-striped">
@@ -123,6 +122,11 @@
                                         </small>
                                     </td>
                                     <td>
+                                        <a href="{{ url_for('main.edit_product_link', product_id=product.id, link_id=link.id) }}"
+                                            class="btn btn-shop-edit btn-shop"
+                                            title="Modifier le lien">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
                                         <form method="POST"
                                               action="{{ url_for('main.delete_link', product_id=product.id, link_id=link.id) }}"
                                               style="display: inline;"
@@ -132,7 +136,6 @@
                                             </button>
                                         </form>
 
-
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -141,74 +144,205 @@
                     </div>
                 {% else %}
                     <div class="alert alert-info">
-                        <h6 class="alert-heading">ℹ️ Aucun lien configuré</h6>
                         <p class="mb-2">Aucun lien de boutique n'a encore été ajouté pour ce produit.</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Prix actuels (historique) -->
-        <div class="row">
-            <div class="col-md-12">
-                <h3>💰 Historique des prix</h3>
-                
-                {% if prices %}
-                    <div class="row">
-                        {% for price in prices %}
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <h5 class="card-title">{{ price.shop_name }}</h5>
-                                        {% if price.is_available and price.price %}
-                                            <span class="badge bg-success">Disponible</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Indisponible</span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    {% if price.price %}
-                                        <h4 class="text-primary">{{ "%.2f"|format(price.price) }} {{ price.currency }}</h4>
-                                    {% else %}
-                                        <h4 class="text-muted">Prix non disponible</h4>
-                                    {% endif %}
-                                    
-                                    {% if price.error_message %}
-                                        <small class="text-danger">{{ price.error_message }}</small>
-                                    {% endif %}
-                                    
-                                    <div class="mt-2">
-                                        <small class="text-muted">
-                                            Dernière vérification : {{ price.scraped_at.split(' ')[0] if price.scraped_at else 'Jamais' }}
-                                        </small>
-                                    </div>
-                                    
-                                    {% if price.url %}
-                                    <div class="mt-2">
-                                        <a href="{{ price.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                            🔗 Voir sur {{ price.shop_name }}
-                                        </a>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="alert alert-warning">
-                        <h6 class="alert-heading">⚠️ Aucun prix dans l'historique</h6>
-                        <p class="mb-0">
-                            Aucun prix n'a encore été collecté pour ce produit. 
-                            Les prix apparaîtront ici après la première collecte automatique.
-                        </p>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Statistiques -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Statistiques de scraping</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="h4 text-primary">{{ stats.total_scrapes }}</div>
+                            <div class="text-muted">Total scrapes</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 text-success">{{ stats.successful_scrapes }}</div>
+                            <div class="text-muted">Succès</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 text-danger">{{ stats.errors }}</div>
+                            <div class="text-muted">Erreurs</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 text-info">{{ stats.success_rate }}%</div>
+                            <div class="text-muted">Taux de succès</div>
+                        </div>
+                    </div>
+                    {% if stats.last_scrape %}
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            <!-- ✅ MOMENT.JS CONFIGURÉ -->
+                            Dernier scraping: {{ moment(stats.last_scrape).format('LLLL') }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Liste des liens à scraper -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-link"></i> Liens configurés ({{ links|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if links %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Boutique</th>
+                                    <th>URL</th>
+                                    <th>Sélecteur CSS</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for link in links %}
+                                <tr id="link-{{ link.id }}">
+                                    <td>
+                                        {% set shop_slug = link.shop_name|lower|replace(' ', '-')|replace('store', '') %}
+                                        {% set shop_class = 'shop-' + shop_slug %}
+                                        {% if shop_class not in ['shop-amazon', 'shop-apple', 'shop-fnac', 'shop-cdiscount', 'shop-leclerc'] %}
+                                        {% set shop_class = 'shop-default' %}
+                                        {% endif %}
+
+                                        <span class="shop-badge {{ shop_class }}">
+                                            <a href="{{ link.url }}" target="_blank">
+                                                {{ link.shop_name }}
+                                            </a>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ link.url }}" target="_blank" class="text-decoration-none">
+                                            {{ link.url[:50] }}{% if link.url|length > 50 %}...{% endif %}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if link.css_selector %}
+                                            <code class="small">{{ link.css_selector }}</code>
+                                        {% else %}
+                                            <span class="text-muted">Auto-détection</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set shop_price = latest_prices | selectattr('shop_name', 'equalto', link.shop_name) | first %}
+                                        {% if shop_price %}
+                                            {% if shop_price.scraped_at %}
+                                                {% if shop_price.is_available and shop_price.price %}
+                                                    <span class="badge bg-success">{{ shop_price.price }} {{ shop_price.currency }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Erreur</span>
+                                                {% endif %}
+                                                <!-- ✅ MOMENT.JS CONFIGURÉ -->
+                                                <br><small class="text-muted">{{ moment(shop_price.scraped_at).fromNow() }}</small>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Jamais testé</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Aucune donnée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button"
+                                                class="btn btn-outline-primary btn-sm me-1"
+                                                title="Tester le scraping"
+                                                onclick="testLinkScraping({{ link.id }}, '{{ link.shop_name|e }}')">
+                                            Test
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="text-muted mb-3">
+                            <i class="bi bi-link-45deg" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="text-muted">Aucun lien configuré pour ce produit.</p>
+                       </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar - Statut des boutiques -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-store"></i> Statut actuel des boutiques</h6>
+                </div>
+                <div class="card-body">
+                    {% set all_links = get_product_links(product.id) %}
+                    {% if all_links %}
+                        <div class="shop-status-list">
+                            {% for link in all_links %}
+                                {% set shop_price = latest_prices['prices'] | selectattr('shop_name', 'equalto', link.shop_name) | first %}
+                                <div class="shop-status-item d-flex justify-content-between align-items-center mb-2 p-2">
+                                    <div class="shop-name">
+                                        <strong>{{ link.shop_name }}</strong>
+                                    </div>
+                                    <div class="shop-status">
+                                        {% if shop_price and shop_price.scraped_at %}
+                                            {% if shop_price.is_available and shop_price.price %}
+                                                <span class="badge bg-success status-ok">OK</span>
+                                            {% else %}
+                                                <span class="badge bg-danger status-ko">KO</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary status-untested">À tester</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <div class="text-muted mb-2">
+                                <i class="fas fa-store" style="font-size: 2rem;"></i>
+                            </div>
+                            <p class="text-muted">Aucune boutique configurée.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Aide -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Aide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <p><strong>Lancer le scraping:</strong> Lance le scraping de tous les liens configurés.</p>
+                        <p><strong>Test individuel:</strong> Teste un seul lien pour vérifier sa configuration.</p>
+                        <p><strong>Auto-détection:</strong> Si aucun sélecteur CSS n'est défini, le système essaiera de détecter automatiquement le prix.</p>
+                        <div class="mt-2">
+                            <span class="badge bg-success">Disponible</span> Prix trouvé récemment<br>
+                            <span class="badge bg-danger">Erreur</span> Problème lors du dernier scraping<br>
+                            <span class="badge bg-secondary">À tester</span> Jamais scrapé
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <div class="modal fade" id="deleteProductModal" tabindex="-1">
     <div class="modal-dialog">
@@ -254,6 +388,182 @@ function confirmDeleteProduct(productId, productName) {
     // Afficher le modal de confirmation
     const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
     modal.show();
+}
+
+function testLinkScraping(linkId, shopName) {
+    const button = event.target;
+    const statusCell = button.closest('tr').querySelector('td:nth-child(4)'); // 4e colonne = Statut
+    const originalButtonContent = button.innerHTML;
+    const originalStatusContent = statusCell.innerHTML;
+
+    // Désactiver le bouton et afficher le chargement
+    button.disabled = true;
+    button.innerHTML = 'Test...';
+
+    // Mettre le statut en "Test en cours"
+    statusCell.innerHTML = '<span class="badge bg-warning">Test en cours...</span>';
+
+    fetch(`/api/link/${linkId}/test-scraping`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.price_found) {
+                // Succès - Prix trouvé
+                statusCell.innerHTML = `
+                    <span class="badge bg-success"><i class="fas fa-check"></i> OK</span>
+                    <br><small class="text-muted">Test: ${data.price} ${data.currency}</small>
+                `;
+                showToast(`✅ Prix trouvé pour ${shopName}: ${data.price} ${data.currency}`, 'success');
+            } else {
+                // Échec - Prix non trouvé
+                statusCell.innerHTML = `
+                    <span class="badge bg-danger"><i class="fas fa-times"></i> KO</span>
+                    <br><small class="text-muted">Test: ${data.error || 'Prix non détecté'}</small>
+                `;
+                showToast(`❌ Aucun prix trouvé pour ${shopName}: ${data.error || 'Prix non détecté'}`, 'warning');
+            }
+        } else {
+            // Erreur technique
+            statusCell.innerHTML = `
+                <span class="badge bg-danger"><i class="fas fa-times"></i> KO</span>
+                <br><small class="text-muted">Test: ${data.error}</small>
+            `;
+            showToast(`❌ Erreur de test pour ${shopName}: ${data.error}`, 'error');
+        }
+
+        // Remettre le bouton à l'état normal
+        button.innerHTML = originalButtonContent;
+        button.disabled = false;
+    })
+    .catch(error => {
+        // Erreur réseau
+        statusCell.innerHTML = `
+            <span class="badge bg-danger"><i class="fas fa-times"></i> KO</span>
+            <br><small class="text-muted">Test: Erreur réseau</small>
+        `;
+        showToast(`❌ Erreur réseau pour ${shopName}`, 'error');
+
+        // Remettre le bouton à l'état normal
+        button.innerHTML = originalButtonContent;
+        button.disabled = false;
+    });
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.top = '20px';
+    toast.style.right = '20px';
+    toast.style.zIndex = '9999';
+    toast.style.maxWidth = '400px';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+<!-- JavaScript pour le scraping AJAX -->
+document.addEventListener('DOMContentLoaded', function() {
+    const startScrapingBtn = document.getElementById('startScraping');
+    const logsCard = document.getElementById('logsCard');
+    const logsElement = document.getElementById('scrapingLogs');
+
+    // Fonction pour ajouter un log
+    function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logClass = {
+            'info': 'text-info',
+            'success': 'text-success',
+            'warning': 'text-warning',
+            'error': 'text-danger'
+        }[type] || 'text-light';
+
+        logsElement.innerHTML += `<span class="${logClass}">[${timestamp}] ${message}</span>\n`;
+        logsElement.scrollTop = logsElement.scrollHeight;
+    }
+
+    // Scraping complet
+    startScrapingBtn.addEventListener('click', function() {
+        const button = this;
+        const originalText = button.innerHTML;
+
+        // Désactiver le bouton et afficher les logs
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Scraping en cours...';
+        logsCard.style.display = 'block';
+        logsElement.innerHTML = '';
+
+        addLog('🚀 Démarrage du scraping...', 'info');
+
+        // Requête AJAX
+        fetch(`{{ url_for('main.scrape_product_ajax', product_id=product.id) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addLog(`✅ ${data.message}`, 'success');
+
+                // Détailler les résultats
+                data.results.forEach(result => {
+                    if (result.success) {
+                        addLog(`  ✓ ${result.shop_name}: ${result.price} ${result.currency}`, 'success');
+                    } else {
+                        addLog(`  ✗ ${result.shop_name}: ${result.error_message}`, 'error');
+                    }
+                });
+
+                // Recharger la page après 3 secondes
+                addLog('🔄 Rechargement de la page dans 3 secondes...', 'info');
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("main.product_detail", product_id=product.id) }}';
+                }, 3000);
+
+            } else {
+                addLog(`❌ Erreur: ${data.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            addLog(`❌ Erreur réseau: ${error.message}`, 'error');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
+    });
+});
+
+function handleProductDetailScrapeClick(button, event) {
+    event.preventDefault();
+
+    const icon = button.querySelector('i');
+    const form = button.closest('form');
+
+    // 🎯 ANIMER L'ICÔNE
+    icon.className = 'fa-solid fa-arrows-spin';
+
+    // 🔒 DÉSACTIVER LE BOUTON
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-arrows-spin"></i> En cours...';
+    button.style.opacity = '0.7';
+
+    // 🚀 SOUMETTRE LE FORMULAIRE
+    form.submit();
 }
 </script>
 

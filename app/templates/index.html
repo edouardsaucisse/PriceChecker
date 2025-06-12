@@ -9,48 +9,104 @@
             <div class="col-md-4">
                 <div class="card clickable-card" data-href="{{ url_for('main.products') }}">
                     <div class="card-body text-center">
-                        <h3 class="card-title">👀 Produits surveillés : {{ products|length }}</h3>
-                        <a href="{{ url_for('main.products') }}" class="btn btn-primary">Voir la liste</a>
+                        <h3 class="card-title"><i class="fa-solid fa-box"></i> Produits surveillés : {{ products|length }}</h3>
+                        <a href="{{ url_for('main.products') }}" class="btn btn-landing-product btn-sm">Voir la liste</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card clickable-card" data-href="{{ url_for('main.add_product') }}">
                     <div class="card-body text-center">
-                        <h3 class="card-title">➕ Ajouter un produit</h3>
-                        <a href="{{ url_for('main.add_product') }}" class="btn btn-success">Ajouter</a>
+                        <h3 class="card-title"><i class="fa-solid fa-square-plus"></i> Ajouter un produit</h3>
+                        <a href="{{ url_for('main.add_product') }}" class="btn btn-landing-addproduct btn-sm">Ajouter</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h3 class="card-title">📈 Alertes prix</h3>
-                        <button class="btn btn-secondary" disabled>Bientôt</button>
+                        <h3 class="card-title"><i class="fa-solid fa-bell"></i> Alertes prix</h3>
+                        <button class="btn btn-action-alert btn-sm" disabled>Bientôt</button>
                     </div>
                 </div>
             </div>
         </div>
-<!--
-        {% if products %}
-        <div class="mt-5">
-            <h3>🏷️ Derniers produits ajoutés</h3>
-            <div class="row">
-                {% for product in products[:3] %}
-                <div class="col-md-4 mb-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ product.name }}</h5>
-                            <p class="card-text">{{ product.description or 'Aucune description' }}</p>
-                            <small class="text-muted">Ajouté le {{ product.created_at }}</small>
+
+        <!-- Statistiques globales -->
+        {% if global_stats %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-line"></i> Statistiques globales de l'application</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="h4 text-primary">{{ global_stats.products_count }}</div>
+                            <div class="text-muted small">Articles suivis</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="h4 text-info">{{ global_stats.links_count }}</div>
+                            <div class="text-muted small">Liens suivis</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="h4 text-warning">{{ global_stats.unique_shops }}</div>
+                            <div class="text-muted small">Boutiques différentes</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="h4 text-secondary">{{ global_stats.total_scrapes }}</div>
+                            <div class="text-muted small">Scraping total</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="h4 text-success">{{ global_stats.successful_scrapes }}</div>
+                            <div class="text-muted small">Scraping réussis</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <div class="stat-item">
+                            <div class="h4 text-danger">{{ global_stats.failed_scrapes }}</div>
+                            <div class="text-muted small">Scraping échoués</div>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
+
+                <!-- Ligne supplémentaire pour les statistiques avancées -->
+                <hr class="my-3">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="stat-item">
+                            <div class="h5 text-warning">{{ global_stats.shops_without_success }}</div>
+                            <div class="text-muted small">Boutiques sans succès</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-item">
+                            <div class="h5 text-success">{{ global_stats.success_rate }}%</div>
+                            <div class="text-muted small">Taux de réussite</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        {% if global_stats.total_scrapes > 0 %}
+                            {% set last_activity = "Aujourd'hui" %}  <!-- À adapter selon vos besoins -->
+                            <div class="h5 text-info">{{ last_activity }}</div>
+                            <div class="text-muted small">Dernière activité</div>
+                        {% else %}
+                            <div class="h5 text-muted">Jamais</div>
+                            <div class="text-muted small">Dernière activité</div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
         {% endif %}
--->
     </div>
 </div>
 

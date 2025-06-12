@@ -3,16 +3,27 @@
 {% block title %}Ajouter un produit - PriceChecker{% endblock %}
 
 {% block content %}
+
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="btn btn-sm" title="Retour à l'accueil"><i class="fas fa-home"></i></a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}" class="btn btn-sm" title="Retour aux produits"><i class="fas fa-box-open"></i></a></li>
+        <li class="breadcrumb-item active" aria-current="page" class="btn btn-sm">Ajouter un produit</li>
+    </ol>
+</nav>
+
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="card">
             <div class="card-header">
-                <h4 class="mb-0">➕ Ajouter un nouveau produit</h4>
+                <h4 class="mb-0"><i class="fa-solid fa-square-plus"></i> Ajouter un nouveau produit</h4>
             </div>
             <div class="card-body">
                 <form method="POST" id="productForm">
                     <div class="mb-3">
-                        <label for="name" class="form-label">Nom du produit *</label>
+                        <label for="name" class="form-label">
+                            Nom du produit
+                        </label>
                         <input type="text" 
                                class="form-control" 
                                id="name" 
@@ -20,28 +31,31 @@
                                required
                                value="{{ name or '' }}"
                                placeholder="Ex: iPhone 15 Pro, Samsung Galaxy S24...">
-                        <div class="form-text">Le nom du produit à surveiller</div>
+                        <div class="form-text">Le nom est obligatoire</div>
                         <div class="invalid-feedback" id="name-error"></div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description (optionnel)</label>
+                        <label for="description" class="form-label">
+                            Description (optionnel)
+                        </label>
                         <textarea class="form-control" 
                                   id="description" 
                                   name="description" 
                                   rows="3"
                                   placeholder="Ajoutez des détails comme la couleur, la capacité, etc.">{{ description or '' }}</textarea>
-                        <div class="form-text">Informations supplémentaires pour identifier le produit</div>
+                        <div class="form-text">Informations supplémentaires</div>
                         <div class="invalid-feedback" id="description-error"></div>
                     </div>
                     
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ url_for('main.products') }}" class="btn btn-secondary">
-                            Annuler
-                        </a>
-                        <button type="submit" class="btn btn-success">
-                            ✅ Créer le produit
+                   <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-action-view btn-sm">
+                            <i class="fa-solid fa-floppy-disk"></i>
                         </button>
+                        <a href="{{ url_for('main.products') }}"
+                           class="btn btn-action-delete btn-sm">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
                     </div>
                 </form>
             </div>
