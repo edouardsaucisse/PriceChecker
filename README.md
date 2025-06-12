@@ -49,7 +49,6 @@ PriceChecker permet de surveiller automatiquement les prix de produits sur diff�
 └── 🧪 Tests: pytest, coverage
 ```
 ## 📸 **Screenshots de l'application**
-
 🖱️ Cliquez pour voir toutes les captures d'écran
 <details>
 
