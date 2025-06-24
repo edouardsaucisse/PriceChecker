@@ -20,8 +20,15 @@ import os
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
-    DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'pricechecker.db')
-    
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+    HOST = os.environ.get('HOST', '0.0.0.0')
+    PORT = int(os.environ.get('PORT', '5000'))
+    DATABASE_PATH = os.environ.get('DATABASE_PATH') or os.path.join(os.path.dirname(__file__), 'pricechecker.db')
+    SCRAPING_DELAY = int(os.environ.get('SCRAPING_DELAY', '2'))
+    MAX_RETRIES = int(os.environ.get('MAX_RETRIES', '3'))
+    TIMEOUT = int(os.environ.get('TIMEOUT', '30'))
+    USER_AGENT = os.environ.get('USER_AGENT', 'PriceChecker/2.4.2')
+
     # Optimisations SQLite
     SQLITE_PRAGMAS = {
         'journal_mode': 'WAL',      # Write-Ahead Logging
@@ -35,6 +42,16 @@ class Config:
     PRICE_HISTORY_DAYS = 30
     AUTO_UPDATE_ENABLED = True
     AUTO_UPDATE_HOUR = 6
+
+@property
+def SCRAPING_CONFIG(self):
+    return {
+        'delay_between_requests': self.SCRAPING_DELAY,
+        'timeout': self.TIMEOUT,
+        'max_retries': self.MAX_RETRIES,
+        'user_agent': self.USER_AGENT,
+    }
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

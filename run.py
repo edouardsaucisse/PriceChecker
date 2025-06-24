@@ -20,12 +20,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 Point d'entrée pour lancer l'application Flask PriceChecker
 """
 
+import os
+from dotenv import load_dotenv
 from app import create_app
+
+# Charger les variables du fichier .env
+load_dotenv()
 
 # Créer l'application
 app = create_app()
 
 if __name__ == '__main__':
-    # L'initialisation de la DB se fait déjà dans create_app() avec le bon contexte
     print("🚀 Lancement de PriceChecker...")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+    # Récupérer la configuration depuis les variables d'environnement
+    debug_mode = os.environ.get('DEBUG', 'True').lower() == 'true'
+    host = os.environ.get('HOST', '0.0.0.0')
+    port = int(os.environ.get('PORT', '5000'))
+
+    app.run(debug=debug_mode, host=host, port=port)

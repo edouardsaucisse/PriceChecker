@@ -100,8 +100,13 @@ PriceChecker permet de surveiller automatiquement les prix de produits sur diff�
 ## 🚀 **Installation**
 
 ### Prérequis
-- Python 3.8+
+- Python 3.13+
 - pip
+- 🐧 python3-venv 
+- 🐧 git
+- 🐧 curl
+- 🐧 wget
+- 🐧 chromium-chromedriver (ou firefox-geckodriver pour Firefox)
 
 ### **Méthode rapide (Windows 🪟)**
 Télécharger le projet puis exécuter les commandes suivantes :
@@ -132,7 +137,10 @@ pip install -r requirements.txt
 # 4. [OPTIONNEL] Initialiser la base de données
 python -c "from database.models import init_db; init_db()"
 
-# 5. Lancer l'application
+# 5. [OPTIONNEL] Mise à jour de pip
+pip install --upgrade pip
+
+# 6. Lancer l'application
 python run.py
 ```
 

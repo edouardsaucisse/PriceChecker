@@ -1,0 +1,14 @@
+[Unit]
+Description=PriceChecker Web Application
+After=network.target
+
+[Service]
+Type=simple
+User=votre-username
+WorkingDirectory=/home/votre-username/projets/PriceChecker
+Environment=PATH=/home/votre-username/projets/PriceChecker/.venv/bin
+ExecStart=/home/votre-username/projets/PriceChecker/.venv/bin/python run.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,20 +1,26 @@
 # 🏷️ PriceChecker - Dépendances vérifiées et activement utilisées
 
 # === FRAMEWORK WEB (OBLIGATOIRE) ===
-Flask==3.0.0
+Flask==3.1.1
+Flask_moment==1.0.6
 
 # === WEB SCRAPING (CORE FEATURES) ===
-requests==2.31.0
-beautifulsoup4==4.12.2
-selenium==4.15.2
-fake-useragent==1.4.0
+requests==2.32.4
+beautifulsoup4==4.13.4
+selenium==4.33.0
+fake-useragent==2.2.0
 
+# === ENVIRONNEMENT VIRTUEL (OBLIGATOIRE) ===
+python-dotenv==1.1.0
+
+
+# === OPTIONNEL ===
 # === AMÉLIORATION DU PARSING HTML ===
-lxml==4.9.3
+# html5lib==1.1 # Changer le parser par défaut de BeautifulSoup dans price_scraper.py de 'html.parser' vers 'html5lib' (recommandé pour une meilleure compatibilité avec HTML5)
 
-# === TESTS (DÉVELOPPEMENT) ===
-pytest==7.4.3
-pytest-cov==4.1.0
+# === TESTS ===
+# pytest==8.4.0
+# pytest-cov==6.2.0
 
 # === MODULES NATIFS PYTHON (PAS BESOIN D'INSTALLATION) ===
 # sqlite3 - Base de données (inclus avec Python)
@@ -28,15 +34,14 @@ pytest-cov==4.1.0
 # os - Système d'exploitation (inclus avec Python)
 
 # === SÉCURITÉ (recommandé pour production) ===
-#flask-wtf==1.2.1          # Si vous ajoutez protection CSRF
-#flask-talisman==1.1.0      # Si vous ajoutez headers sécurité
+# flask-wtf==1.2.2          # Si vous ajoutez protection CSRF
+# flask-talisman==1.1.0      # Si vous ajoutez headers sécurité
 
 # === PERFORMANCE (recommandé pour production) ===
-#flask-compress==1.14       # Si vous ajoutez compression gzip
-#gunicorn==21.2.0          # Pour déploiement production
+# flask-compress==1.17       # Si vous ajoutez compression gzip
+# gunicorn==23.0.0   # Pour déploiement production
 
 # === DÉVELOPPEMENT ===
-#vulture==2.10             # Pour détecter le code mort
-#black==23.11.0            # Pour formatter le code
-#flake8==6.1.0             # Pour linter le code
-
+# vulture==2.14            # Pour détecter le code mort
+# black==25.1.0            # Pour formatter le code
+# flake8==7.2.0            # Pour linter le code
