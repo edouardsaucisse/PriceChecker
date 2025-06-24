@@ -1,22 +1,32 @@
+#!/bin/bash
 # This script installs the necessary dependencies for the project on a Debian-based system.
-echo "This script needs to be run with root privileges, please use sudo."
+
 if [ "$(id -u)" -ne 0 ]; then
+    echo "This script needs to be run with root privileges, please use sudo."
     echo "You are not running this script as root. Please use sudo."
     exit 1
 fi
 echo "This script will install the necessary dependencies, configure and deploy pricechecker."
+echo ""
 echo "This script will update the system and install mandatory packages :"
 echo "* System : curl, wget, git, and build-essential."
 echo "* Python : Python3, python3-dev, pip, and the required python packages."
+echo ""
 echo "* RECOMMENDED : gunicorn (production grade webserver, replacing flask embedded WSGI server)."
-echo "* Optional : Python3-dev, ."
-echo "This script will install optional packages :"
+echo ""
+echo "* Optional : Python3-dev (for building some Python packages that require compilation)."
+echo ""
+echo "This script will ask to install optional packages :"
 echo "* Optional : html5lib (enhanced HTML parsing)"
 echo "* Optional : chromium-browser and chromium-chromedriver (for web scraping with Selenium)"
 echo "* Optional : firefox and geckodriver (for web scraping with Selenium)"
+echo ""
 echo 'This script will pull the last version of the project from GitHub.'
+echo ""
 echo "This script will also set up a systemd service for pricechecker."
+echo ""
 echo "Press any key to continue or Ctrl+C to cancel."
+echo ""
 read -n 1 -s -r
 read -p "Do you want to check github to get the latest version (y to agree, any key to skip): " GITHUB
 read -p "Do you want to install gunicorn? (y to agree, any key to skip): " GUNICORN
