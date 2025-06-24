@@ -84,6 +84,35 @@ else
     exit 1
 fi
 
+if [ "$GITHUB" = "y" ]; then
+    if [ -d ./pricechecker ]; then
+        echo "#######"
+        echo "Checking for the latest version of PriceChecker..."
+        echo "#######"
+        cd pricechecker || exit
+        git pull origin main
+        if [ $? -eq 0 ]; then
+            echo "PriceChecker updated successfully."
+        else
+            echo "Failed to update PriceChecker. Please check your internet connection or package sources."
+        fi
+        cd .. || exit
+    else
+        echo "#######"
+        echo "Cloning PriceChecker from GitHub..."
+        echo "#######"
+        git clone https://github.com/edouardsaucisse/pricechecker
+        if [ $? -eq 0 ]; then
+            echo "PriceChecker cloned successfully."
+            cd pricechecker || exit
+        else
+            echo "Failed to clone PriceChecker. Please check your internet connection or package sources."
+            echo "Aborting the installation."
+            exit 1
+        fi
+    fi
+fi
+
 echo "#######"
 echo "Creating Python virtual environment..."
 echo "#######"
@@ -196,48 +225,66 @@ elif [ "$BROWSER" = "firefox" ]; then
     echo "#######"
     echo "Installing Firefox and geckodriver..."
     echo "#######"
-    apt install -y firefox-esr geckodriver
-    if [ $? -eq 0 ]; then
-        echo "#######"
-        echo "Firefox and geckodriver installed successfully."
-    else
-        echo "Failed to install Firefox and geckodriver. Please check your internet connection or package sources."
+
+    # Installation de Firefox
+    apt install -y firefox-esr
+    if [ $? -ne 0 ]; then
+        echo "Failed to install Firefox. Please check your internet connection or package sources."
         BROWSER="failed"
+    else
+        echo "Firefox installed successfully."
+
+        # Installation manuelle de geckodriver
+        echo "Installing geckodriver manually..."
+
+        # Détection de l'architecture
+        ARCH=$(uname -m)
+        if [ "$ARCH" = "x86_64" ]; then
+            GECKO_ARCH="linux64"
+        elif [ "$ARCH" = "aarch64" ]; then
+            GECKO_ARCH="linux-aarch64"
+        else
+            GECKO_ARCH="linux32"
+        fi
+
+        # Téléchargement de la dernière version
+        GECKO_VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+        if [ -z "$GECKO_VERSION" ]; then
+            echo "Failed to get geckodriver version. Using fallback version v0.34.0"
+            GECKO_VERSION="v0.34.0"
+        fi
+
+        GECKO_URL="https://github.com/mozilla/geckodriver/releases/download/${GECKO_VERSION}/geckodriver-${GECKO_VERSION}-${GECKO_ARCH}.tar.gz"
+
+        # Téléchargement et installation
+        cd /tmp
+        wget -O geckodriver.tar.gz "$GECKO_URL"
+        if [ $? -eq 0 ]; then
+            tar -xzf geckodriver.tar.gz
+            chmod +x geckodriver
+            mv geckodriver /usr/local/bin/
+            rm -f geckodriver.tar.gz
+
+            # Vérification de l'installation
+            if [ -f /usr/local/bin/geckodriver ]; then
+                echo "Geckodriver installed successfully in /usr/local/bin/"
+                /usr/local/bin/geckodriver --version
+            else
+                echo "Failed to install geckodriver."
+                BROWSER="failed"
+            fi
+        else
+            echo "Failed to download geckodriver from GitHub."
+            echo "You can install it manually later from: https://github.com/mozilla/geckodriver/releases"
+            BROWSER="failed"
+        fi
+        cd - > /dev/null
     fi
 elif [ "$BROWSER" = "none" ]; then
     echo "No browser selected for web scraping."
 else
     echo "Invalid option for browser selection."
     echo "Falling back to no browser mode."
-fi
-
-if [ "$GITHUB" = "y" ]; then
-    if [ -d ./pricechecker ]; then
-        echo "#######"
-        echo "Checking for the latest version of PriceChecker..."
-        echo "#######"
-        cd pricechecker || exit
-        git pull origin main
-        if [ $? -eq 0 ]; then
-            echo "PriceChecker updated successfully."
-        else
-            echo "Failed to update PriceChecker. Please check your internet connection or package sources."
-        fi
-        cd .. || exit
-    else
-        echo "#######"
-        echo "Cloning PriceChecker from GitHub..."
-        echo "#######"
-        git clone https://github.com/edouardsaucisse/pricechecker
-        if [ $? -eq 0 ]; then
-            echo "PriceChecker cloned successfully."
-            cd pricechecker || exit
-        else
-            echo "Failed to clone PriceChecker. Please check your internet connection or package sources."
-            echo "Aborting the installation."
-            exit 1
-        fi
-    fi
 fi
 
 if [ "$REMOVEDB" = "y" ]; then
@@ -278,64 +325,58 @@ if [ "$SYSSERVICE" = "y" ]; then
     fi
 fi
 
-if [ "$CUSTOMIZECONFIG" = "y" ]; then
-    echo "#######"
-    echo "You are about to configure pricechecker by editing config.py. Do it at your own risk."
-    echo "#######"
-    nano ./config.py
-else
-    echo "#######"
-    echo "Configuring pricechecker..."
-    echo "#######"
-    echo "Generating a random secret key for the configuration file..."
-    SECRET_KEY=$(openssl rand -base64 32)
+echo "#######"
+echo "Configuring pricechecker..."
+echo "#######"
+echo "Generating a random secret key for the configuration file..."
+SECRET_KEY=$(openssl rand -base64 32)
+if [ $? -eq 0 ]; then
+    sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$SECRET_KEY|" ./.env
     if [ $? -eq 0 ]; then
-        sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$SECRET_KEY|" ./.env
+        echo "Configuration file updated with a random secret key."
+    else
+        echo "Failed to update the configuration file. Please check your permissions."
+    fi
+else
+    echo "Failed to generate a random secret key. Please check your OpenSSL installation."
+fi
+
+if [ "$HTML5LIB" = "y" ]; then
+    echo "Configuring html5lib"
+    sed -i "s/soup = BeautifulSoup(response\.content, 'html\.parser')/soup = BeautifulSoup(response.content, 'html5lib')/g" ./scraping/price_scraper.py
+    if [ $? -eq 0 ]; then
+        echo "html5lib configured successfully."
+    else
+        echo "Failed to configure html5lib in ./scraping/price_scraper.py."
+    fi
+fi
+
+if [ "$BROWSER" != "none" ]; then
+    if [ "$BROWSER" = "chromium" ]; then
+        sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla\/5.0 (X11; Linux x86_64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/121.0.0.0 Safari\/537.36/g" ./.env
         if [ $? -eq 0 ]; then
-            echo "Configuration file updated with a random secret key."
+            echo "Chromium user agent configured."
         else
-            echo "Failed to update the configuration file. Please check your permissions."
+            echo "Failed to configure Chromium user agent."
+        fi
+    elif [ "$BROWSER" = "firefox" ]; then
+        sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla\/5.0 (X11; Linux x86_64; rv:122.0) Gecko\/20100101 Firefox\/122.0/g" ./.env
+        if [ $? -eq 0 ]; then
+            echo "Firefox user agent configured."
+        else
+            echo "Failed to configure Firefox user agent."
         fi
     else
-        echo "Failed to generate a random secret key. Please check your OpenSSL installation."
+        echo "No browser selected for web scraping, skipping user agent configuration."
     fi
+fi
+echo "You can customize the configuration file later at ./config.py and/or .env."
 
-    if [ "$HTML5LIB" = "y" ]; then
-        echo "Configuring html5lib"
-        sed -i "s/soup = BeautifulSoup(response\.content, 'html\.parser')/soup = BeautifulSoup(response.content, 'html5lib')/g" ./scraping/price_scraper.py
-        if [ $? -eq 0 ]; then
-            echo "html5lib configured successfully."
-        else
-            echo "Failed to configure html5lib in ./scraping/price_scraper.py."
-        fi
-    fi
-
-    if [ "$BROWSER" != "none" ]; then
-        if [ "$BROWSER" = "chromium" ]; then
-            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla\/5.0 (X11; Linux x86_64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/121.0.0.0 Safari\/537.36/g" ./.env
-            if [ $? -eq 0 ]; then
-                echo "Chromium user agent configured."
-            else
-                echo "Failed to configure Chromium user agent."
-            fi
-        elif [ "$BROWSER" = "firefox" ]; then
-            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla\/5.0 (X11; Linux x86_64; rv:122.0) Gecko\/20100101 Firefox\/122.0/g" ./.env
-            if [ $? -eq 0 ]; then
-                echo "Firefox user agent configured."
-            else
-                echo "Failed to configure Firefox user agent."
-            fi
-        else
-            echo "No browser selected for web scraping, skipping user agent configuration."
-        fi
-    fi
-    echo "You can customize the configuration file later at ./config.py and/or .env."
-
-    if [ "$GUNICORN" = "y" ]; then
-        echo "#######"
-        echo "Configuring Gunicorn as a production-class WSGI server..."
-        echo "#######"
-        cat > gunicorn.conf << EOF
+if [ "$GUNICORN" = "y" ]; then
+    echo "#######"
+    echo "Configuring Gunicorn as a production-class WSGI server..."
+    echo "#######"
+    cat > gunicorn.conf << EOF
 # Gunicorn configuration for PriceChecker
 bind = "0.0.0.0:5000"
 workers = 4
@@ -349,22 +390,28 @@ accesslog = "./logs/access.log"
 errorlog = "./logs/error.log"
 loglevel = "info"
 EOF
-        if [ $? -eq 0 ]; then
-            echo "Gunicorn.conf configuration file created successfully."
-            if [ -f /etc/systemd/system/pricechecker.service ]; then
-                sed -i "s|ExecStart=$(pwd)/.venv/bin/python run.py|ExecStart=$(pwd)/.venv/bin/gunicorn -c $(pwd)/gunicorn.conf run:app|" /etc/systemd/system/pricechecker.service
-                if [ $? -eq 0 ]; then
-                    echo "Gunicorn configuration deployed in /etc/systemd/system/pricechecker.service."
-                else
-                    echo "Failed to configure Gunicorn service in /etc/systemd/system/pricechecker.service."
-                    echo "Skipping Gunicorn configuration."
-                fi
+    if [ $? -eq 0 ]; then
+        echo "Gunicorn.conf configuration file created successfully."
+        if [ -f /etc/systemd/system/pricechecker.service ]; then
+            sed -i "s|ExecStart=$(pwd)/.venv/bin/python run.py|ExecStart=$(pwd)/.venv/bin/gunicorn -c $(pwd)/gunicorn.conf run:app|" /etc/systemd/system/pricechecker.service
+            if [ $? -eq 0 ]; then
+                echo "Gunicorn configuration deployed in /etc/systemd/system/pricechecker.service."
+            else
+                echo "Failed to configure Gunicorn service in /etc/systemd/system/pricechecker.service."
+                echo "Skipping Gunicorn configuration."
             fi
-        else
-            echo "Failed to create Gunicorn configuration file."
-            echo "Skipping Gunicorn configuration."
         fi
+    else
+        echo "Failed to create Gunicorn configuration file."
+        echo "Skipping Gunicorn configuration."
     fi
+fi
+
+if [ "$CUSTOMIZECONFIG" = "y" ]; then
+    echo "#######"
+    echo "You are about to configure pricechecker by editing config.py. Do it at your own risk."
+    echo "#######"
+    nano ./config.py
 fi
 
 echo "#######"

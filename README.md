@@ -376,6 +376,90 @@ python run.py
 - [ ] 📖 Documentation API
 - [ ] 📚 Guide de contribution
 
+## 🧪 Tests ##
+L'application est censée fonctionner sur Linux, Windows et macOS.
+Le plan de test est divisé en trois parties :
+1. **🔧 Plan de Tests Techniques** : Teste le code de l'application
+2. **📦 Plan de Tests de Déploiement Système/Application** : Teste les scripts d'installation et le déploiement de l'application
+3. **⚡ Plan de Tests Fonctionnels** : Teste les fonctionnalités de l'application
+
+Les tests peuvent être :
+- **⏳ A faire** : Le test n'est pas encore implémenté ou n'a pas été lancé
+- **❌ Echoué** : Le test a échoué (mais ne bloque pas l'application)
+- **✅ Validé** : Le test est validé
+
+### 🔧 Plan de Tests Techniques ###
+
+_À faire_
+
+### 📦 Plan de Tests de Déploiement Système/Application ###
+
+#### 🐧 Linux ####
+##### 🍥 Debian/Ubuntu #####
+Script d'installation : `install_debian.sh`
+
+Statut général : **✅ OK**
+
+L'application fonctionne et est opérationnelle.
+
+Détails :
+
+| Option                                   | Statut de développement | Attente                                          | Statut de test |
+|------------------------------------------|-------------------------|--------------------------------------------------|----------------|
+| `Vérification sudo`                      | Implémenté ✅            | Éjecte l'utilisateur s'il n'est pas sudo ou root | ✅              |
+| `Mise à jour système`                    | Implémenté ✅            | Met à jour les paquets système                   | ✅              |
+| `Pull Github`                            | Implémenté ✅            | Récupère la dernière version du dépôt github     | ✅              |
+| `Création venv`                          | Implémenté ✅            | Crée un environnement virtuel python3            | ✅              |
+| `Installation pip`                       | Implémenté ✅            | Installe le gestionnaire de paquets pip          | ✅              |
+| `Installation des prérequis`             | Implémenté ✅            | Installe les paquets requis                      | ✅              |
+| `Installation Gunicorn`                  | Implémenté ✅            | Installe gunicorn                                | ✅              |
+| `Déploiement Gunicorn`                   | Implémenté ✅            | Déploie gunicorn                                 | ✅              |
+| `Utilisation Gunicorn`                   | Implémenté ✅            | Utilise gunicorn                                 | ⏳              |
+| `Python3-Dev`                            | Implémenté ✅            | Installe Python3-Dev                             | ✅              |
+| `Installation HTML5Lib`                  | Implémenté ✅            | Installe HTML5Lib                                | ✅              |
+| `Déploiement HTML5Lib`                   | Implémenté ✅            | Déploie HTML5Lib                                 | ✅              |
+| `Utilisation HTML5Lib`                   | Implémenté ✅            | Utilise HTML5Lib                                 | ⏳              |
+| `Installation Chromium`                  | Implémenté ✅            | Installe Chromium et ses dépendances             | ✅              |
+| `Déploiement Chromium`                   | Implémenté ✅            | Déploie Chromium                                 | ✅              |
+| `Utilisation Chromium`                   | Implémenté ✅            | Utilise Chromium                                 | ⏳              |
+| `Installation Firefox`                   | Implémenté ✅            | Installe Firefox et ses dépendances              | ✅              |
+| `Déploiement Firefox`                    | Implémenté ✅            | Déploie Firefox                                  | ✅              |
+| `Utilisation Firefox`                    | Implémenté ✅            | Utilise Firefox                                  | ⏳              |
+| `Méthode sans scraping`                  | Implémenté ✅            | Utilise la méthode de scraping intégrée          | ✅              |
+| `Suppression base de données par défaut` | Implémenté ✅            | Supprime la base de données par défaut           | ⏳              |
+| `Configuration du service`               | Implémenté ✅            | Configure le service avec toutes les options     | ✅              |
+| `Activation du service`                  | Implémenté ✅            | Active le service                                | ✅              |
+| `Personnalisation de la configuration`   | Implémenté ✅            | Personnalise la configuration de l'application   | ✅              |
+| `Édition de la configuration`            | Implémenté ✅            | Édite le fichier de config (manuellement)        | ⏳              |
+| `Configuration des logs`                 | Implémenté ✅            | Crée le répertoire des logs                      | ✅              |
+| `Démarrage du service`                   | Implémenté ✅            | Démarre l'application via le service             | ✅              |
+| `Démarrage autonome de l'application`    | Implémenté ✅            | Démarre l'application en mode autonome           | ⏳              |
+
+#### 🪟 Windows ####
+Script d'installation : `install.bat`
+
+Statut général : **✅ OK**
+
+L'application fonctionne et est opérationnelle.
+
+Détails :
+
+| Option                                | Statut de développement | Attente                                 | Statut de test |
+|---------------------------------------|-------------------------|-----------------------------------------|----------------|
+| `Création venv`                       | Implémenté ✅            | Crée un environnement virtuel python3   | ✅              |
+| `Installation pip`                    | Implémenté ✅            | Installe le gestionnaire de paquets pip | ✅              |
+| `Installation des prérequis`          | Implémenté ✅            | Installe les paquets requis             | ✅              |
+| `Méthode sans scraping`               | Implémenté ✅            | Utilise la méthode de scraping intégrée | ✅              |
+| `Démarrage autonome de l'application` | Implémenté ✅            | Démarre l'application en mode autonome  | ✅              |
+
+#### 🍏 macOS ####
+
+📋 _À faire_
+
+### ⚡ Plan de Tests Fonctionnels ###
+
+📋 _À faire_
+
 ## 📞 **Support et contribution**
 
 - 🐛 **Issues** : [GitHub Issues](repository-url/issues) **COMING SOON**
