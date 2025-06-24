@@ -1,4 +1,3 @@
-#!/bin/sh
 # This script installs the necessary dependencies for the project on a Debian-based system.
 echo "This script needs to be run with root privileges, please use sudo."
 if [ "$(id -u)" -ne 0 ]; then
@@ -29,7 +28,7 @@ echo "It is recommended to customize the configuration file located at ./config.
 read -p "Do you want to customize the configuration file now? You can do it later if you want (y to agree, any key to skip): " CUSTOMIZECONFIG
 read -p "Do you want to start PriceChecker after the installation? (y to agree, any key to skip): " STARTNOW
 
-if [ "BROWSER" = "y" ]; then
+if [ "$BROWSER" = "y" ]; then
     BROWSER="chromium"
 else
     read -p "Do you want to install firefox and geckodriver? (y to agree, any key to skip): " BROWSER
@@ -48,7 +47,7 @@ echo "Updating the system..."
 echo "#######"
 apt update && apt upgrade -y
 
-if $?; then
+if [ $? -eq 0 ]; then
     echo "#######"
     echo "System updated successfully."
 else
@@ -60,7 +59,7 @@ echo "Installing mandatory packages..."
 echo "#######"
 apt install -y curl wget git build-essential python3 python3-pip nano openssl
 
-if $?; then
+if [ $? -eq 0 ]; then
     echo "#######"
     echo "Mandatory packages installed successfully."
 else
@@ -74,7 +73,7 @@ echo "Installing pip packages..."
 echo "#######"
 pip3 install --upgrade pip
 
-if $?; then
+if [ $? -eq 0 ]; then
     echo "#######"
     echo "Python packages installed successfully."
 else
@@ -88,7 +87,7 @@ echo "Installing Python packages..."
 echo "#######"
 pip3 install -r requirements.txt
 
-if $?; then
+if [ $? -eq 0 ]; then
     echo "#######"
     echo "Python packages installed successfully."
 else
@@ -102,12 +101,12 @@ if [ "$GUNICORN" = "y" ]; then
     echo "Installing gunicorn..."
     echo "#######"
     pip3 install gunicorn
-    if $?; then
+    if [ $? -eq 0 ]; then
         echo "#######"
         echo "Gunicorn installed successfully."
     else
         echo "Failed to install gunicorn. Please check your internet connection or package sources."
-        GUNICORN = "failed"
+        GUNICORN="failed"
     fi
 fi
 
@@ -116,7 +115,7 @@ if [ "$P3DEV" = "y" ]; then
     echo "Installing Python3-dev..."
     echo "#######"
     apt install -y python3-dev
-    if $?; then
+    if [ $? -eq 0 ]; then
         echo "#######"
         echo "Python3-dev installed successfully."
     else
@@ -130,12 +129,12 @@ if [ "$HTML5LIB" = "y" ]; then
     echo "Installing html5lib..."
     echo "#######"
     pip3 install html5lib
-    if $?; then
+    if [ $? -eq 0 ]; then
         echo "#######"
         echo "html5lib installed successfully."
     else
         echo "Failed to install html5lib. Please check your internet connection or package sources."
-        HTML5LIB = "failed"
+        HTML5LIB="failed"
     fi
 fi
 
@@ -144,24 +143,24 @@ if [ "$BROWSER" = "chromium" ]; then
     echo "Installing Chromium and chromedriver..."
     echo "#######"
     apt install -y chromium-browser chromium-chromedriver
-    if $?; then
+    if [ $? -eq 0 ]; then
         echo "#######"
         echo "Chromium and chromedriver installed successfully."
     else
         echo "Failed to install Chromium and chromedriver. Please check your internet connection or package sources."
-        BROWSER = "failed"
+        BROWSER="failed"
     fi
 elif [ "$BROWSER" = "firefox" ]; then
     echo "#######"
     echo "Installing Firefox and geckodriver..."
     echo "#######"
     apt install -y firefox-esr geckodriver
-    if $?; then
+    if [ $? -eq 0 ]; then
         echo "#######"
         echo "Firefox and geckodriver installed successfully."
     else
         echo "Failed to install Firefox and geckodriver. Please check your internet connection or package sources."
-        BROWSER = "failed"
+        BROWSER="failed"
     fi
 elif [ "$BROWSER" = "none" ]; then
     echo "No browser selected for web scraping."
@@ -177,7 +176,7 @@ if [ "$GITHUB" = "y" ]; then
         echo "#######"
         cd pricechecker || exit
         git pull origin main
-        if $?; then
+        if [ $? -eq 0 ]; then
             echo "PriceChecker updated successfully."
         else
             echo "Failed to update PriceChecker. Please check your internet connection or package sources."
@@ -187,7 +186,7 @@ if [ "$GITHUB" = "y" ]; then
         echo "Cloning PriceChecker from GitHub..."
         echo "#######"
         git clone https://github.com/edouardsaucisse/pricechecker
-        if $?; then
+        if [ $? -eq 0 ]; then
             echo "PriceChecker cloned successfully."
         else
             echo "Failed to clone PriceChecker. Please check your internet connection or package sources."
@@ -203,7 +202,7 @@ if [ "$REMOVEDB" = "y" ]; then
     echo "#######"
     if [ -f ./pricechecker.db ]; then
       rm -rf ./pricechecker.db
-      if $?; then
+      if [ $? -eq 0 ]; then
           echo "Test database removed successfully."
       else
           echo "Failed to remove the test database. Please check your permissions."
@@ -227,7 +226,7 @@ if [ "$SYSSERVICE" = "y" ]; then
         echo "Skipping service setup."
     fi
     systemctl enable pricechecker.service
-    if $?; then
+    if [ $? -eq 0 ]; then
         echo "Pricechecker service set up successfully."
     else
         echo "Failed to set up the pricechecker service."
@@ -259,7 +258,7 @@ else
     if [ "$HTML5LIB" = "y" ]; then
         echo "Configuring html5lib"
         sed -i "s/soup = BeautifulSoup(response\.content, 'html\.parser')/soup = BeautifulSoup(response.content, 'html5lib')/g" ./scraping/price_scraper.py
-        if $?; then
+        if [ $? -eq 0 ]; then
             echo "html5lib configured successfully."
         else
             echo "Failed to configure html5lib in ./scraping/price_scraper.py."
@@ -267,8 +266,8 @@ else
     fi
 
     if [ "$BROWSER" != "none" ]; then
-        if [ "$BROWSER" != "chromium" ]; then
-            sed "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+        if [ "$BROWSER" = "chromium" ]; then
+            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
 /g" ./.env
             if [ $? -eq 0 ]; then
                 echo "Chromium user agent configured."
@@ -276,7 +275,7 @@ else
                 echo "Failed to configure Chromium user agent."
             fi
         elif [ "$BROWSER" = "firefox" ]; then
-            sed "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0
+            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0
 /g" ./.env
             if [ $? -eq 0 ]; then
                 echo "Firefox user agent configured."
@@ -307,11 +306,11 @@ accesslog = "./logs/access.log"
 errorlog = "./logs/error.log"
 loglevel = "info"
 EOF
-        if $?; then
+        if [ $? -eq 0 ]; then
             echo "Gunicorn.conf configuration file created successfully."
             if [ -f /etc/systemd/system/pricechecker.service ]; then
-                sed -i "s|ExecStart=$(pwd)/.venv/bin/python run.py|ExecStart=$(pwd)/.venv/bin/gunicorn -c $(pwd)/gunicorn.conf. run:app|" /etc/systemd/system/pricechecker.service
-                if $?; then
+                sed -i "s|ExecStart=$(pwd)/.venv/bin/python run.py|ExecStart=$(pwd)/.venv/bin/gunicorn -c $(pwd)/gunicorn.conf run:app|" /etc/systemd/system/pricechecker.service
+                if [ $? -eq 0 ]; then
                     echo "Gunicorn configuration file created successfully."
                     echo "Gunicorn configuration deployed in /etc/systemd/system/pricechecker.service."
                 else
@@ -330,7 +329,7 @@ echo "#######"
 echo "Creating log directory..."
 echo "#######"
 mkdir -p logs
-if $?; then
+if [ $? -eq 0 ]; then
     echo "Log directory created successfully."
 else
     echo "Failed to create log directory. Please check your permissions."
@@ -342,7 +341,7 @@ if [ "$STARTNOW" = "y" ]; then
         echo "Starting the pricechecker service..."
         echo "#######"
         systemctl start pricechecker.service
-        if $?; then
+        if [ $? -eq 0 ]; then
             echo "#######"
             echo "Pricechecker service started successfully."
         else
@@ -385,7 +384,7 @@ echo "sudo systemctl status pricechecker.service"
 echo "## 5. Check if the pricechecker service is enabled to start on boot:"
 echo "sudo systemctl is-enabled pricechecker.service"
 echo "check system logs:"
-sudo "journalctl -u pricechecker -f"
+echo "sudo journalctl -u pricechecker -f"
 echo "#######"
 echo "Exiting the installation script."
 exit 0
