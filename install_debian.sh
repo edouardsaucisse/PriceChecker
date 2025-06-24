@@ -6,11 +6,12 @@ if [ "$(id -u)" -ne 0 ]; then
     echo "You are not running this script as root. Please use sudo."
     exit 1
 fi
+
 echo "This script will install the necessary dependencies, configure and deploy pricechecker."
 echo ""
 echo "This script will update the system and install mandatory packages :"
 echo "* System : curl, wget, git, and build-essential."
-echo "* Python : Python3, python3-dev, pip, and the required python packages."
+echo "* Python : Python3, python3-dev, python3-venv, and the required python packages."
 echo ""
 echo "* RECOMMENDED : gunicorn (production grade webserver, replacing flask embedded WSGI server)."
 echo ""
@@ -28,29 +29,34 @@ echo ""
 echo "Press any key to continue or Ctrl+C to cancel."
 echo ""
 read -n 1 -s -r
+
 read -p "Do you want to check github to get the latest version (y to agree, any key to skip): " GITHUB
 read -p "Do you want to install gunicorn? (y to agree, any key to skip): " GUNICORN
 read -p "Do you want to install Python3-dev? (y to agree, any key to skip): " P3DEV
 read -p "Do you want to install html5lib? (y to agree, any key to skip): " HTML5LIB
+echo ""
 echo "You have to choose between chromium and firefox for web scraping. YOU CAN CHOOSE ONE BUT NOT BOTH."
 read -p "Do you want to install Chromium and chromedriver? (y to agree, any key to skip): " BROWSER
-echo "It is recommended to customize the configuration file located at ./config.py if the application is exposed on the internet."
-read -p "Do you want to customize the configuration file now? You can do it later if you want (y to agree, any key to skip): " CUSTOMIZECONFIG
-read -p "Do you want to start PriceChecker after the installation? (y to agree, any key to skip): " STARTNOW
-
 if [ "$BROWSER" = "y" ]; then
     BROWSER="chromium"
 else
-    read -p "Do you want to install firefox and geckodriver? (y to agree, any key to skip): " BROWSER
+    read -p "Do you want to install Firefox and geckodriver? (y to agree, any key to skip): " BROWSER
     if [ "$BROWSER" = "y" ]; then
         BROWSER="firefox"
     else
         BROWSER="none"
     fi
 fi
-
+echo ""
+echo "It is recommended to customize the configuration file located at ./config.py if the application is exposed on the internet."
+read -p "Do you want to customize the configuration file during installation? You can do it later if you want (y to agree, any key to skip): " CUSTOMIZECONFIG
+echo ""
+read -p "Do you want to start PriceChecker after the installation? (y to agree, any key to skip): " STARTNOW
+echo ""
 read -p "Do you want to remove the test database? (y to agree, any key to skip): " REMOVEDB
+echo ""
 read -p "Do you want to setup PriceChecker as a service? (y to agree, any key to skip): " SYSSERVICE
+echo ""
 
 echo "#######"
 echo "Updating the system..."
@@ -67,7 +73,7 @@ fi
 echo "#######"
 echo "Installing mandatory packages..."
 echo "#######"
-apt install -y curl wget git build-essential python3 python3-pip nano openssl
+apt install -y curl wget git build-essential python3 python3-pip python3-venv python3-full nano openssl
 
 if [ $? -eq 0 ]; then
     echo "#######"
@@ -79,43 +85,69 @@ else
 fi
 
 echo "#######"
-echo "Installing pip packages..."
+echo "Creating Python virtual environment..."
 echo "#######"
-pip3 install --upgrade pip
+python3 -m venv .venv
 
 if [ $? -eq 0 ]; then
-    echo "#######"
-    echo "Python packages installed successfully."
+    echo "Virtual environment created successfully."
 else
-    echo "Failed to upgrade pip. Please check your internet connection or package sources."
+    echo "Failed to create virtual environment. Please check your Python installation."
     echo "Aborting the installation."
     exit 1
 fi
 
 echo "#######"
-echo "Installing Python packages..."
+echo "Activating virtual environment..."
 echo "#######"
-pip3 install -r requirements.txt
+source .venv/bin/activate
+
+if [ $? -eq 0 ]; then
+    echo "Virtual environment activated successfully."
+else
+    echo "Failed to activate virtual environment."
+    echo "Aborting the installation."
+    exit 1
+fi
+
+echo "#######"
+echo "Upgrading pip in virtual environment..."
+echo "#######"
+.venv/bin/pip install --upgrade pip
 
 if [ $? -eq 0 ]; then
     echo "#######"
-    echo "Python packages installed successfully."
+    echo "Pip upgraded successfully in virtual environment."
 else
-    echo "Failed to install Python packages. Please check your internet connection or package sources."
+    echo "Failed to upgrade pip in virtual environment."
+    echo "Aborting the installation."
+    exit 1
+fi
+
+echo "#######"
+echo "Installing Python packages in virtual environment..."
+echo "#######"
+.venv/bin/pip install -r requirements.txt
+
+if [ $? -eq 0 ]; then
+    echo "#######"
+    echo "Python packages installed successfully in virtual environment."
+else
+    echo "Failed to install Python packages in virtual environment."
     echo "Aborting the installation."
     exit 1
 fi
 
 if [ "$GUNICORN" = "y" ]; then
     echo "#######"
-    echo "Installing gunicorn..."
+    echo "Installing gunicorn in virtual environment..."
     echo "#######"
-    pip3 install gunicorn
+    .venv/bin/pip install gunicorn
     if [ $? -eq 0 ]; then
         echo "#######"
-        echo "Gunicorn installed successfully."
+        echo "Gunicorn installed successfully in virtual environment."
     else
-        echo "Failed to install gunicorn. Please check your internet connection or package sources."
+        echo "Failed to install gunicorn in virtual environment."
         GUNICORN="failed"
     fi
 fi
@@ -136,14 +168,14 @@ fi
 
 if [ "$HTML5LIB" = "y" ]; then
     echo "#######"
-    echo "Installing html5lib..."
+    echo "Installing html5lib in virtual environment..."
     echo "#######"
-    pip3 install html5lib
+    .venv/bin/pip install html5lib
     if [ $? -eq 0 ]; then
         echo "#######"
-        echo "html5lib installed successfully."
+        echo "html5lib installed successfully in virtual environment."
     else
-        echo "Failed to install html5lib. Please check your internet connection or package sources."
+        echo "Failed to install html5lib in virtual environment."
         HTML5LIB="failed"
     fi
 fi
@@ -191,6 +223,7 @@ if [ "$GITHUB" = "y" ]; then
         else
             echo "Failed to update PriceChecker. Please check your internet connection or package sources."
         fi
+        cd .. || exit
     else
         echo "#######"
         echo "Cloning PriceChecker from GitHub..."
@@ -198,6 +231,7 @@ if [ "$GITHUB" = "y" ]; then
         git clone https://github.com/edouardsaucisse/pricechecker
         if [ $? -eq 0 ]; then
             echo "PriceChecker cloned successfully."
+            cd pricechecker || exit
         else
             echo "Failed to clone PriceChecker. Please check your internet connection or package sources."
             echo "Aborting the installation."
@@ -211,14 +245,15 @@ if [ "$REMOVEDB" = "y" ]; then
     echo "Removing the test database..."
     echo "#######"
     if [ -f ./pricechecker.db ]; then
-      rm -rf ./pricechecker.db
-      if [ $? -eq 0 ]; then
-          echo "Test database removed successfully."
-      else
-          echo "Failed to remove the test database. Please check your permissions."
-      fi
+        rm -rf ./pricechecker.db
+        if [ $? -eq 0 ]; then
+            echo "Test database removed successfully."
+        else
+            echo "Failed to remove the test database. Please check your permissions."
+        fi
+    else
+        echo "No test database found, skipping removal."
     fi
-    echo "No test database found, skipping removal."
 fi
 
 if [ "$SYSSERVICE" = "y" ]; then
@@ -277,16 +312,14 @@ else
 
     if [ "$BROWSER" != "none" ]; then
         if [ "$BROWSER" = "chromium" ]; then
-            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
-/g" ./.env
+            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla\/5.0 (X11; Linux x86_64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/121.0.0.0 Safari\/537.36/g" ./.env
             if [ $? -eq 0 ]; then
                 echo "Chromium user agent configured."
             else
                 echo "Failed to configure Chromium user agent."
             fi
         elif [ "$BROWSER" = "firefox" ]; then
-            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0
-/g" ./.env
+            sed -i "s/USER_AGENT=PriceChecker\/2\.4\.2/USER_AGENT=Mozilla\/5.0 (X11; Linux x86_64; rv:122.0) Gecko\/20100101 Firefox\/122.0/g" ./.env
             if [ $? -eq 0 ]; then
                 echo "Firefox user agent configured."
             else
@@ -302,7 +335,7 @@ else
         echo "#######"
         echo "Configuring Gunicorn as a production-class WSGI server..."
         echo "#######"
-            cat > gunicorn.conf << EOF
+        cat > gunicorn.conf << EOF
 # Gunicorn configuration for PriceChecker
 bind = "0.0.0.0:5000"
 workers = 4
@@ -321,7 +354,6 @@ EOF
             if [ -f /etc/systemd/system/pricechecker.service ]; then
                 sed -i "s|ExecStart=$(pwd)/.venv/bin/python run.py|ExecStart=$(pwd)/.venv/bin/gunicorn -c $(pwd)/gunicorn.conf run:app|" /etc/systemd/system/pricechecker.service
                 if [ $? -eq 0 ]; then
-                    echo "Gunicorn configuration file created successfully."
                     echo "Gunicorn configuration deployed in /etc/systemd/system/pricechecker.service."
                 else
                     echo "Failed to configure Gunicorn service in /etc/systemd/system/pricechecker.service."
@@ -355,18 +387,29 @@ if [ "$STARTNOW" = "y" ]; then
             echo "#######"
             echo "Pricechecker service started successfully."
         else
-            echo "Failed to start the pricechecker service. Please check your internet connection or package sources."
+            echo "Failed to start the pricechecker service."
+        fi
+    else
+        echo "#######"
+        echo "Starting PriceChecker manually..."
+        echo "#######"
+        .venv/bin/python ./run.py &
+        if [ $? -eq 0 ]; then
+            echo "PriceChecker started successfully."
+        else
+            echo "Failed to start PriceChecker manually."
         fi
     fi
-
-else
-    python3 ./run.py &
 fi
 
 echo "#######"
 echo "PriceChecker installation completed successfully."
 echo "You can now access PriceChecker at http://localhost:5000."
 echo "If you have set up a domain, you can access it at http://yourdomain.com:5000."
+echo ""
+echo "To start PriceChecker manually in the future, use:"
+echo "source .venv/bin/activate && python run.py"
+echo ""
 echo "If you want to change this, consider changing the application's configuration files (config.py, .env)"
 echo "and the service file (/etc/systemd/system/pricechecker.service)."
 echo "DO IT AT YOUR OWN RISK."
@@ -378,6 +421,7 @@ echo "Github repository: https://github.com/edouardsaucisse/pricechecker"
 echo "#######"
 echo "Local troubleshooting :"
 echo "## 1. Check python3 environment:"
+echo "source .venv/bin/activate"
 echo "which python"
 echo "python --version"
 echo "pip list"
