@@ -393,6 +393,7 @@ EOF
     if [ $? -eq 0 ]; then
         echo "Gunicorn.conf configuration file created successfully."
         if [ -f /etc/systemd/system/pricechecker.service ]; then
+            systemctl stop pricechecker.service
             sed -i "s|ExecStart=$(pwd)/.venv/bin/python run.py|ExecStart=$(pwd)/.venv/bin/gunicorn -c $(pwd)/gunicorn.conf run:app|" /etc/systemd/system/pricechecker.service
             if [ $? -eq 0 ]; then
                 echo "Gunicorn configuration deployed in /etc/systemd/system/pricechecker.service."
@@ -429,6 +430,8 @@ if [ "$STARTNOW" = "y" ]; then
         echo "#######"
         echo "Starting the pricechecker service..."
         echo "#######"
+        systemctl stop pricechecker.service
+        systemctl daemon-reload
         systemctl start pricechecker.service
         if [ $? -eq 0 ]; then
             echo "#######"

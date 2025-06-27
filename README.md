@@ -2,7 +2,7 @@
 
 **Application web de surveillance automatique des prix en ligne**
 
-![Version](https://img.shields.io/badge/version-2.4.7-blue.svg)
+![Version](https://img.shields.io/badge/version-2.4.8-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.13%2B-green.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 
@@ -338,7 +338,7 @@ export DEBUG=True
 python run.py
 ```
 
-## 🔮 **Roadmap v2.0**
+## 🔮 **Roadmap v3.0**
 
 ### **Fonctionnalités à venir :**
 - [ ] 🔐 Authentification multi-utilisateurs
