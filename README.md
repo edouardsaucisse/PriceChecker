@@ -352,6 +352,7 @@ python run.py
 - [ ] 👑 Page d'administration
 - [ ] 💰 Achat optimisé
 - [ ] 🔎 Filtres
+- [ ] 🌐 Sélection du scraper
 ### **UX/UI :**
 - [ ] 🖌️ Refonte de l'interface/Quality of Life
 - [ ] 🎨 Nouveau thème sombre
@@ -414,7 +415,7 @@ Détails :
 | `Installation des prérequis`             | Implémenté ✅            | Installe les paquets requis                      | ✅              |
 | `Installation Gunicorn`                  | Implémenté ✅            | Installe gunicorn                                | ✅              |
 | `Déploiement Gunicorn`                   | Implémenté ✅            | Déploie gunicorn                                 | ✅              |
-| `Utilisation Gunicorn`                   | Implémenté ✅            | Utilise gunicorn                                 | ⏳              |
+| `Utilisation Gunicorn`                   | Implémenté ✅            | Utilise gunicorn                                 | ✅              |
 | `Python3-Dev`                            | Implémenté ✅            | Installe Python3-Dev                             | ✅              |
 | `Installation HTML5Lib`                  | Implémenté ✅            | Installe HTML5Lib                                | ✅              |
 | `Déploiement HTML5Lib`                   | Implémenté ✅            | Déploie HTML5Lib                                 | ✅              |
@@ -446,11 +447,11 @@ Détails :
 
 | Option                                | Statut de développement | Attente                                 | Statut de test |
 |---------------------------------------|-------------------------|-----------------------------------------|----------------|
-| `Création venv`                       | Implémenté ✅            | Crée un environnement virtuel python3   | ✅              |
-| `Installation pip`                    | Implémenté ✅            | Installe le gestionnaire de paquets pip | ✅              |
-| `Installation des prérequis`          | Implémenté ✅            | Installe les paquets requis             | ✅              |
-| `Méthode sans scraping`               | Implémenté ✅            | Utilise la méthode de scraping intégrée | ✅              |
-| `Démarrage autonome de l'application` | Implémenté ✅            | Démarre l'application en mode autonome  | ✅              |
+| `Création venv`                       | Implémenté ✅            | Crée un environnement virtuel python3   | ⏳              |
+| `Installation pip`                    | Implémenté ✅            | Installe le gestionnaire de paquets pip | ⏳              |
+| `Installation des prérequis`          | Implémenté ✅            | Installe les paquets requis             | ⏳              |
+| `Méthode sans scraping`               | Implémenté ✅            | Utilise la méthode de scraping intégrée | ⏳              |
+| `Démarrage autonome de l'application` | Implémenté ✅            | Démarre l'application en mode autonome  | ⏳              |
 
 #### 🍏 macOS ####
 
